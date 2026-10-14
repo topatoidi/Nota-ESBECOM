@@ -522,4 +522,288 @@
 
             }).catch(error => {
                 console.error("Error membaca data:", error);
-                alert("Gagal membaca database! Pastikan Rules Firebase Anda sudah di-Publish
+                alert("Gagal membaca database! Pastikan Rules Firebase Anda sudah di-Publish dengan benar.");
+            });
+        }
+
+        function syncToFirebase() {
+            if (!currentUser) return;
+            const statusInfo = document.getElementById('status-sync');
+            statusInfo.style.display = 'block'; statusInfo.innerText = "⏳ Menyimpan..."; statusInfo.style.color = "#d97706";
+            
+            db.collection("users").doc(currentUser.uid).set({ items: itemDatabase, profiles: storeProfiles }, { merge: true }).then(() => {
+                statusInfo.innerText = "✅ Tersimpan"; statusInfo.style.color = "#059669";
+                setTimeout(() => { statusInfo.style.display = 'none'; }, 3000);
+            }).catch(error => {
+                console.error("Error menyimpan:", error);
+                statusInfo.innerText = "❌ Gagal Simpan (Cek Rules Firebase)"; statusInfo.style.color = "#ef4444";
+                alert("Gagal menyimpan ke server! Pastikan Anda sudah mengubah Rules Firebase menjadi 'allow read, write: if request.auth != null;' lalu klik Publish.");
+            });
+        }
+
+        // --- 4. PROFIL TOKO ---
+        function loadStoreProfilesList() {
+            const select = document.getElementById('sel-profile');
+            while (select.options.length > 1) { select.remove(1); }
+            for (let profileName in storeProfiles) {
+                let option = document.createElement('option');
+                option.value = profileName; option.text = profileName;
+                select.appendChild(option);
+            }
+        }
+
+        function saveProfile() {
+            const profileName = document.getElementById('inp-profile-name').value.trim();
+            if (!profileName) { alert("Masukkan nama profil!"); return; }
+
+            // Logika cek gambar aman: simpan blank jika sedang di-hide (dihapus)
+            const elLogo = document.getElementById('out-logo');
+            const elSign = document.getElementById('out-sign-img');
+
+            storeProfiles[profileName] = {
+                toko: document.getElementById('inp-toko').value,
+                ukuranFont: document.getElementById('inp-toko-size').value,
+                slogan: document.getElementById('inp-slogan').value,
+                alamat: document.getElementById('inp-alamat').value,
+                telp: document.getElementById('inp-telp').value,
+                logoSrc: (elLogo.style.display !== 'none') ? elLogo.src : '',
+                signName: document.getElementById('inp-sign-name').value, 
+                signImgSrc: (elSign.style.display !== 'none') ? elSign.src : '', 
+                disclaimer: document.getElementById('inp-disclaimer').value,
+                useWatermark: document.getElementById('chk-watermark').checked,
+                wmSize: document.getElementById('inp-wm-size').value,
+                wmOpacity: document.getElementById('inp-wm-opacity').value
+            };
+            syncToFirebase();
+            document.getElementById('inp-profile-name').value = '';
+            loadStoreProfilesList(); document.getElementById('sel-profile').value = profileName;
+        }
+
+        function loadSelectedProfile() {
+            const profileName = document.getElementById('sel-profile').value;
+            if (!profileName || !storeProfiles[profileName]) return;
+
+            const data = storeProfiles[profileName];
+            document.getElementById('inp-toko').value = data.toko || '';
+            document.getElementById('inp-toko-size').value = data.ukuranFont || '20';
+            document.getElementById('inp-slogan').value = data.slogan || '';
+            document.getElementById('inp-alamat').value = data.alamat || '';
+            document.getElementById('inp-telp').value = data.telp || '';
+            
+            document.getElementById('inp-sign-name').value = data.signName || 'Sakti Haryo Prakoso';
+            document.getElementById('inp-disclaimer').value = data.disclaimer || 'Nota ini dicetak secara digital dan dinyatakan sah meskipun tanpa stempel basah.';
+
+            document.getElementById('chk-watermark').checked = data.useWatermark || false;
+            document.getElementById('inp-wm-size').value = data.wmSize || '60';
+            document.getElementById('inp-wm-opacity').value = data.wmOpacity || '10';
+            document.getElementById('val-wm-size').innerText = data.wmSize || '60';
+            document.getElementById('val-wm-opacity').innerText = data.wmOpacity || '10';
+            document.getElementById('wrap-wm-controls').style.display = data.useWatermark ? 'flex' : 'none';
+
+            const imgLogo = document.getElementById('out-logo');
+            if (data.logoSrc && data.logoSrc.length > 100) { imgLogo.src = data.logoSrc; imgLogo.style.display = 'block'; } 
+            else { imgLogo.src = ''; imgLogo.style.display = 'none'; }
+
+            const imgSign = document.getElementById('out-sign-img');
+            if (data.signImgSrc && data.signImgSrc.length > 100) { imgSign.src = data.signImgSrc; imgSign.style.display = 'block'; } 
+            else { imgSign.src = ''; imgSign.style.display = 'none'; }
+
+            document.getElementById('inp-logo').value = '';
+            document.getElementById('inp-sign-img').value = '';
+            updatePreview();
+        }
+
+        function deleteProfile() {
+            const profileName = document.getElementById('sel-profile').value;
+            if (!profileName) return;
+            if (confirm(`Hapus profil "${profileName}"?`)) {
+                delete storeProfiles[profileName]; syncToFirebase();
+                loadStoreProfilesList(); document.getElementById('sel-profile').value = '';
+            }
+        }
+
+        // FUNGSI HAPUS GAMBAR
+        function hapusLogo() {
+            document.getElementById('inp-logo').value = '';
+            const imgLogo = document.getElementById('out-logo');
+            imgLogo.src = '';
+            imgLogo.style.display = 'none';
+            updatePreview();
+        }
+
+        function hapusTandaTangan() {
+            document.getElementById('inp-sign-img').value = '';
+            const imgSign = document.getElementById('out-sign-img');
+            imgSign.src = '';
+            imgSign.style.display = 'none';
+            updatePreview();
+        }
+
+        // --- 5. LOGIKA UI & ITEM ---
+        document.getElementById('inp-tanggal').valueAsDate = new Date();
+
+        function formatUang(angka, mataUang) {
+            let options = { style: 'currency', currency: mataUang, minimumFractionDigits: 0, maximumFractionDigits: 0 };
+            if (mataUang === 'USD') options.maximumFractionDigits = 2; 
+            return new Intl.NumberFormat(mataUang === 'IDR' ? 'id-ID' : 'en-US', options).format(angka);
+        }
+
+        const inputs = ['inp-toko', 'inp-toko-size', 'inp-slogan', 'inp-alamat', 'inp-telp', 'inp-judul', 'inp-no', 'inp-tanggal', 'inp-duedate', 'inp-tujuan', 'inp-currency', 'inp-tax', 'inp-discount', 'inp-sign-name', 'inp-disclaimer'];
+        inputs.forEach(id => { document.getElementById(id).addEventListener('input', updatePreview); });
+
+        document.getElementById('chk-watermark').addEventListener('change', function() { 
+            document.getElementById('wrap-wm-controls').style.display = this.checked ? 'flex' : 'none'; 
+            updatePreview(); 
+        });
+        document.getElementById('inp-wm-size').addEventListener('input', function() { document.getElementById('val-wm-size').innerText = this.value; updatePreview(); });
+        document.getElementById('inp-wm-opacity').addEventListener('input', function() { document.getElementById('val-wm-opacity').innerText = this.value; updatePreview(); });
+
+        document.getElementById('chk-duedate').addEventListener('change', function() { document.getElementById('wrap-duedate').style.display = this.checked ? 'block' : 'none'; document.getElementById('out-row-duedate').style.display = this.checked ? 'table-row' : 'none'; });
+        document.getElementById('chk-tax').addEventListener('change', function() { document.getElementById('wrap-tax').style.display = this.checked ? 'block' : 'none'; document.getElementById('out-row-tax').style.display = this.checked ? 'table-row' : 'none'; updatePreview(); });
+        document.getElementById('chk-discount').addEventListener('change', function() { document.getElementById('wrap-discount').style.display = this.checked ? 'block' : 'none'; document.getElementById('out-row-discount').style.display = this.checked ? 'table-row' : 'none'; updatePreview(); });
+
+        document.getElementById('inp-logo').addEventListener('change', function(e) {
+            if (e.target.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(event) { 
+                    document.getElementById('out-logo').src = event.target.result; 
+                    document.getElementById('out-logo').style.display = 'block'; 
+                    updatePreview();
+                }
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        });
+
+        document.getElementById('inp-sign-img').addEventListener('change', function(e) {
+            if (e.target.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(event) { document.getElementById('out-sign-img').src = event.target.result; document.getElementById('out-sign-img').style.display = 'block'; }
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        });
+
+        function loadItemDatabase() {
+            const datalist = document.getElementById('saved-items-list'); datalist.innerHTML = '';
+            for (let name in itemDatabase) {
+                let option = document.createElement('option'); option.value = name; datalist.appendChild(option);
+            }
+        }
+
+        document.getElementById('entry-name').addEventListener('input', function() {
+            if (itemDatabase[this.value]) { document.getElementById('entry-price').value = itemDatabase[this.value].price; document.getElementById('entry-unit').value = itemDatabase[this.value].unit; }
+        });
+
+        const entryFields = ['entry-name', 'entry-qty', 'entry-unit', 'entry-price'];
+        entryFields.forEach(id => { document.getElementById(id).addEventListener('keypress', function(e) { if (e.key === 'Enter') { e.preventDefault(); addItem(); } }); });
+
+        function addItem() {
+            const name = document.getElementById('entry-name').value.trim();
+            const qty = parseFloat(document.getElementById('entry-qty').value);
+            const unit = document.getElementById('entry-unit').value.trim();
+            const price = parseFloat(document.getElementById('entry-price').value);
+
+            if (!name || isNaN(qty) || isNaN(price)) { alert("Isi form dengan benar!"); return; }
+
+            invoiceItems.push({ name, qty, unit, price });
+            itemDatabase[name] = { price: price, unit: unit }; syncToFirebase(); loadItemDatabase();
+
+            document.getElementById('entry-name').value = ''; document.getElementById('entry-qty').value = '1'; document.getElementById('entry-price').value = ''; document.getElementById('entry-name').focus();
+            renderItems(); updatePreview();
+        }
+
+        function removeItem(index) { invoiceItems.splice(index, 1); renderItems(); updatePreview(); }
+
+        function renderItems() {
+            const tbody = document.getElementById('out-items-body'); const currency = document.getElementById('inp-currency').value; tbody.innerHTML = '';
+            invoiceItems.forEach((item, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${index + 1}</td><td><b>${item.name}</b></td><td class="center">${item.qty} ${item.unit}</td><td class="right">${formatUang(item.price, currency)}</td><td class="right"><b>${formatUang(item.qty * item.price, currency)}</b></td><td class="hidden-print"><button class="btn-remove" onclick="removeItem(${index})">X</button></td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updatePreview() {
+            const currency = document.getElementById('inp-currency').value;
+
+            document.getElementById('out-toko').innerText = document.getElementById('inp-toko').value;
+            document.getElementById('out-toko').style.fontSize = document.getElementById('inp-toko-size').value + 'px';
+            document.getElementById('out-judul').innerText = document.getElementById('inp-judul').value || 'INVOICE';
+            document.getElementById('out-no').innerText = '#' + document.getElementById('inp-no').value;
+            
+            const slogan = document.getElementById('inp-slogan').value; const alamat = document.getElementById('inp-alamat').value; const telp = document.getElementById('inp-telp').value;
+            document.getElementById('out-slogan').innerText = slogan; document.getElementById('out-slogan').style.display = slogan ? 'block' : 'none';
+            document.getElementById('out-alamat').innerText = alamat; document.getElementById('out-alamat').style.display = alamat ? 'block' : 'none';
+            document.getElementById('out-telp').innerText = telp ? 'Telp/WA: ' + telp : ''; document.getElementById('out-telp').style.display = telp ? 'block' : 'none';
+
+            document.getElementById('out-tanggal').innerText = document.getElementById('inp-tanggal').value;
+            document.getElementById('out-duedate').innerText = document.getElementById('inp-duedate').value || '-';
+            document.getElementById('out-tujuan').innerText = document.getElementById('inp-tujuan').value || '-';
+
+            document.getElementById('out-sign-name').innerText = document.getElementById('inp-sign-name').value;
+            document.getElementById('out-disclaimer').innerText = document.getElementById('inp-disclaimer').value;
+
+            // Render Watermark
+            const wmImg = document.getElementById('out-watermark');
+            const chkWm = document.getElementById('chk-watermark').checked;
+            const logoEl = document.getElementById('out-logo');
+            
+            // Cek apakah logo utama ada dan sedang ditampilkan
+            if (chkWm && logoEl.src && logoEl.style.display !== 'none') {
+                wmImg.src = logoEl.src;
+                wmImg.style.display = 'block';
+                wmImg.style.width = document.getElementById('inp-wm-size').value + '%';
+                wmImg.style.opacity = document.getElementById('inp-wm-opacity').value / 100;
+            } else {
+                wmImg.style.display = 'none';
+            }
+
+            let subtotal = invoiceItems.reduce((sum, item) => sum + (item.qty * item.price), 0);
+            let taxAmount = 0; let discountAmount = 0;
+
+            if (document.getElementById('chk-tax').checked) {
+                const taxPercent = parseFloat(document.getElementById('inp-tax').value) || 0;
+                document.getElementById('out-tax-label').innerText = taxPercent; taxAmount = subtotal * (taxPercent / 100);
+            }
+            if (document.getElementById('chk-discount').checked) discountAmount = parseFloat(document.getElementById('inp-discount').value) || 0;
+
+            document.getElementById('out-subtotal').innerText = formatUang(subtotal, currency);
+            document.getElementById('out-tax-amount').innerText = formatUang(taxAmount, currency);
+            document.getElementById('out-discount-amount').innerText = "-" + formatUang(discountAmount, currency);
+            document.getElementById('out-total').innerText = formatUang(subtotal + taxAmount - discountAmount, currency);
+            
+            renderItems();
+        }
+
+        function openDbModal() { document.getElementById('db-modal').style.display = 'flex'; renderDbTable(); }
+        function closeDbModal() { document.getElementById('db-modal').style.display = 'none'; }
+        
+        function renderDbTable() {
+            const tbody = document.getElementById('db-table-body'); const currency = document.getElementById('inp-currency').value; tbody.innerHTML = '';
+            let no = 1;
+            for (let name in itemDatabase) {
+                const safeName = name.replace(/'/g, "\\'"); 
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${no++}</td><td>${name}</td><td>${formatUang(itemDatabase[name].price, currency)}</td><td>${itemDatabase[name].unit}</td><td><button class="btn-delete-db" onclick="deleteDbItem('${safeName}')">Hapus</button></td>`;
+                tbody.appendChild(tr);
+            }
+            if (no === 1) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px;">Belum ada data barang tersimpan.</td></tr>';
+        }
+
+        function deleteDbItem(name) {
+            if(confirm(`Hapus "${name}" dari sistem Cloud?`)) { delete itemDatabase[name]; syncToFirebase(); renderDbTable(); loadItemDatabase(); }
+        }
+
+        window.onclick = function(event) { if (event.target == document.getElementById('db-modal')) closeDbModal(); }
+
+        function saveAsImage() {
+            document.querySelectorAll('.hidden-print').forEach(el => el.style.display = 'none');
+            html2canvas(document.getElementById('invoice-paper'), { scale: 2 }).then(canvas => {
+                const link = document.createElement('a'); link.download = `Nota_${document.getElementById('inp-no').value}.png`;
+                link.href = canvas.toDataURL("image/png"); link.click();
+                document.querySelectorAll('.hidden-print').forEach(el => el.style.display = 'inline-block');
+            });
+        }
+
+    </script>
+</body>
+</html>
