@@ -5,10 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aplikasi Nota & Invoice Custom</title>
     
-    <!-- Library untuk save ke gambar -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    
-    <!-- Library Firebase (Database Online) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -50,7 +47,6 @@
         .flex-row { display: flex; gap: 10px; align-items: center; }
         .flex-row > div { flex: 1; }
         
-        /* Item Input Khusus */
         .item-entry-row { display: flex; gap: 8px; align-items: flex-end; background: #f9fafb; padding: 10px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 15px; }
         .item-entry-row > div { display: flex; flex-direction: column; }
         .item-entry-row input { padding: 8px; }
@@ -97,7 +93,13 @@
         .btn-remove { background: #ef4444; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 0.8rem; }
         .hidden-print { display: inline-block; }
 
-        /* Modal Database */
+        /* Footer Tanda Tangan & Disclaimer */
+        .inv-footer-section { display: flex; justify-content: space-between; margin-top: 50px; align-items: flex-end; }
+        .inv-disclaimer { font-size: 0.8rem; color: #6b7280; width: 60%; font-style: italic; }
+        .inv-signature { width: 35%; text-align: center; }
+        .inv-signature img { max-height: 80px; max-width: 150px; display: none; margin: 5px auto; object-fit: contain; }
+        .inv-signature-name { font-weight: bold; text-decoration: underline; margin-top: 10px; }
+
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
         .modal-content { background: white; padding: 25px; border-radius: 8px; width: 80%; max-width: 600px; max-height: 80vh; overflow-y: auto; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
         .modal-close { position: absolute; top: 15px; right: 20px; font-size: 1.5rem; cursor: pointer; border: none; background: none; color: #6b7280; }
@@ -110,7 +112,6 @@
         .profile-section { background: #e0f2fe; padding: 15px; border-radius: 8px; border: 1px solid #bae6fd; margin-bottom: 20px; }
         .profile-section label { color: #0369a1; font-size: 0.95rem; }
 
-        /* Media Query Print */
         @media print {
             body { background: white; display: block; overflow: auto; height: auto; }
             .controls, #login-overlay { display: none !important; }
@@ -122,7 +123,7 @@
 </head>
 <body>
 
-    <!-- Layar Login (Akan hilang jika sudah login) -->
+    <!-- Layar Login -->
     <div id="login-overlay">
         <div class="login-box">
             <h2>Masuk Database</h2>
@@ -137,7 +138,7 @@
     <!-- Panel Kontrol Kiri -->
     <div class="controls">
         
-        <!-- Header Kontrol dengan Tombol Logout -->
+        <!-- Header Kontrol -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 10px;">
             <h2 style="margin: 0; border: none; padding: 0;">Panel Kontrol Nota</h2>
             <button onclick="logoutApp()" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold;">🚪 Logout</button>
@@ -145,7 +146,7 @@
 
         <!-- SECTION: MANAJEMEN PROFIL TOKO -->
         <div class="profile-section">
-            <label>🏢 Manajemen Profil Toko (Tersimpan Online)</label>
+            <label>🏢 Manajemen Profil Toko</label>
             <div class="flex-row" style="margin-bottom: 10px;">
                 <div style="flex: 2;">
                     <select id="sel-profile" onchange="loadSelectedProfile()">
@@ -167,11 +168,10 @@
             <p id="status-sync" style="color: #059669; font-size: 0.75rem; margin-top: 8px; font-weight: bold; display: none;">✅ Data tersinkronisasi ke Cloud</p>
         </div>
 
-        <h2>1. Pengaturan Header Nota</h2>
+        <h2>1. Pengaturan Header Toko</h2>
         <div class="form-group">
             <label>Logo Toko (Opsional)</label>
             <input type="file" id="inp-logo" accept="image/*">
-            <small style="color: #6b7280; font-size: 0.75rem;">(Logo akan ikut tersimpan ke dalam Profil Toko)</small>
         </div>
         <div class="flex-row">
             <div class="form-group" style="flex: 2;">
@@ -197,11 +197,18 @@
             <input type="text" id="inp-telp" placeholder="0812xxxxxx">
         </div>
 
+        <h2>2. Detail Nota & Tujuan</h2>
         <div class="flex-row">
             <div class="form-group">
                 <label>Judul Nota</label>
                 <input type="text" id="inp-judul" value="INVOICE">
             </div>
+            <div class="form-group">
+                <label>Nomor Nota</label>
+                <input type="text" id="inp-no" value="INV-001">
+            </div>
+        </div>
+        <div class="flex-row">
             <div class="form-group">
                 <label>Mata Uang</label>
                 <select id="inp-currency">
@@ -209,14 +216,6 @@
                     <option value="USD">USD ($)</option>
                     <option value="EUR">Euro (€)</option>
                 </select>
-            </div>
-        </div>
-
-        <h2>2. Detail Nota & Tujuan</h2>
-        <div class="flex-row">
-            <div class="form-group">
-                <label>Nomor Nota</label>
-                <input type="text" id="inp-no" value="INV-001">
             </div>
             <div class="form-group">
                 <label>Tanggal</label>
@@ -268,7 +267,6 @@
             <label><input type="checkbox" id="chk-tax"> Tambah Pajak (Tax %)</label>
             <label><input type="checkbox" id="chk-discount"> Tambah Diskon</label>
         </div>
-        
         <div class="flex-row">
             <div class="form-group" id="wrap-tax" style="display: none;">
                 <label>Pajak (%)</label>
@@ -278,6 +276,21 @@
                 <label>Diskon (Nominal)</label>
                 <input type="number" id="inp-discount" value="0" min="0">
             </div>
+        </div>
+
+        <!-- SECTION BARU: TANDA TANGAN & VALIDASI -->
+        <h2>5. Tanda Tangan & Validasi</h2>
+        <div class="form-group">
+            <label>Teks Validasi / Disclaimer Resmi</label>
+            <textarea id="inp-disclaimer" rows="2">Nota ini dicetak secara digital dan dinyatakan sah meskipun tanpa stempel basah.</textarea>
+        </div>
+        <div class="form-group">
+            <label>Nama Penanda Tangan</label>
+            <input type="text" id="inp-sign-name" value="Sakti Haryo Prakoso">
+        </div>
+        <div class="form-group">
+            <label>Upload Tanda Tangan / Paraf (Opsional, gunakan PNG transparan)</label>
+            <input type="file" id="inp-sign-img" accept="image/*">
         </div>
 
         <div class="actions">
@@ -362,6 +375,18 @@
                 </table>
             </div>
 
+            <!-- Bagian Footer Tanda Tangan & Disclaimer -->
+            <div class="inv-footer-section">
+                <div class="inv-disclaimer" id="out-disclaimer">
+                    Nota ini dicetak secara digital dan dinyatakan sah meskipun tanpa stempel basah.
+                </div>
+                <div class="inv-signature">
+                    <div style="color: #4b5563; font-size: 0.9rem;">Hormat Kami,</div>
+                    <img id="out-sign-img" src="" alt="Tanda Tangan">
+                    <div class="inv-signature-name" id="out-sign-name">Sakti Haryo Prakoso</div>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -398,34 +423,26 @@
             appId: "1:910454412966:web:fd6cf1e5b47fd079bd4667"
         };
 
-        // Inisialisasi Firebase
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // Variabel Global
         let currentUser = null;
         let invoiceItems = [];
         let itemDatabase = {};
         let storeProfiles = {};
 
-        // --- 2. SISTEM LOGIN & LOGOUT ---
+        // --- 2. SISTEM LOGIN ---
         auth.onAuthStateChanged((user) => {
             if (user) {
-                // Jika berhasil login
                 currentUser = user;
                 document.getElementById('login-overlay').style.display = 'none';
                 loadDataFromFirebase();
             } else {
-                // Jika belum login / logout
                 currentUser = null;
                 document.getElementById('login-overlay').style.display = 'flex';
-                // Kosongkan data agar tidak nyangkut
-                itemDatabase = {};
-                storeProfiles = {};
-                invoiceItems = [];
-                loadStoreProfilesList();
-                loadItemDatabase();
+                itemDatabase = {}; storeProfiles = {}; invoiceItems = [];
+                loadStoreProfilesList(); loadItemDatabase();
             }
         });
 
@@ -435,102 +452,66 @@
             const btn = document.getElementById('btn-login');
             const err = document.getElementById('login-error');
             
-            btn.innerText = "Loading...";
-            err.style.display = 'none';
-
+            btn.innerText = "Loading..."; err.style.display = 'none';
             auth.signInWithEmailAndPassword(email, pass).catch((error) => {
                 err.innerText = "Login Gagal: Periksa Email/Password Anda.";
-                err.style.display = 'block';
-                btn.innerText = "Login";
+                err.style.display = 'block'; btn.innerText = "Login";
             });
         }
+        function logoutApp() { auth.signOut(); }
 
-        function logoutApp() {
-            auth.signOut();
-        }
-
-        // --- 3. SISTEM SINKRONISASI DATABASE (CLOUD) ---
+        // --- 3. SINKRONISASI CLOUD ---
         function loadDataFromFirebase() {
             if (!currentUser) return;
-            
-            // Ambil data user dari Firestore
             db.collection("users").doc(currentUser.uid).get().then((doc) => {
                 if (doc.exists) {
                     const data = doc.data();
                     itemDatabase = data.items || {};
                     storeProfiles = data.profiles || {};
-                } else {
-                    itemDatabase = {};
-                    storeProfiles = {};
                 }
-                
-                // Refresh tampilan setelah data masuk
-                loadItemDatabase();
-                loadStoreProfilesList();
-                updatePreview();
-            }).catch((error) => {
-                console.error("Error mengambil data:", error);
-            });
+                loadItemDatabase(); loadStoreProfilesList(); updatePreview();
+            }).catch(error => console.error("Error:", error));
         }
 
         function syncToFirebase() {
             if (!currentUser) return;
-            
             const statusInfo = document.getElementById('status-sync');
-            statusInfo.style.display = 'block';
-            statusInfo.innerText = "⏳ Menyimpan ke Cloud...";
-            statusInfo.style.color = "#d97706"; // Warna oranye
-
-            db.collection("users").doc(currentUser.uid).set({
-                items: itemDatabase,
-                profiles: storeProfiles
-            }, { merge: true }).then(() => {
-                statusInfo.innerText = "✅ Data tersinkronisasi ke Cloud";
-                statusInfo.style.color = "#059669"; // Warna hijau
+            statusInfo.style.display = 'block'; statusInfo.innerText = "⏳ Menyimpan..."; statusInfo.style.color = "#d97706";
+            db.collection("users").doc(currentUser.uid).set({ items: itemDatabase, profiles: storeProfiles }, { merge: true }).then(() => {
+                statusInfo.innerText = "✅ Tersimpan"; statusInfo.style.color = "#059669";
                 setTimeout(() => { statusInfo.style.display = 'none'; }, 3000);
-            }).catch((error) => {
-                statusInfo.innerText = "❌ Gagal menyimpan data";
-                statusInfo.style.color = "#ef4444"; // Warna merah
             });
         }
 
-        // --- 4. DATABASE PROFIL TOKO ---
+        // --- 4. PROFIL TOKO ---
         function loadStoreProfilesList() {
             const select = document.getElementById('sel-profile');
             while (select.options.length > 1) { select.remove(1); }
-            
             for (let profileName in storeProfiles) {
                 let option = document.createElement('option');
-                option.value = profileName;
-                option.text = profileName;
+                option.value = profileName; option.text = profileName;
                 select.appendChild(option);
             }
         }
 
         function saveProfile() {
             const profileName = document.getElementById('inp-profile-name').value.trim();
-            if (!profileName) {
-                alert("Mohon masukkan nama profil toko terlebih dahulu! (Cth: Toko A)");
-                return;
-            }
+            if (!profileName) { alert("Masukkan nama profil!"); return; }
 
-            const profileData = {
+            storeProfiles[profileName] = {
                 toko: document.getElementById('inp-toko').value,
                 ukuranFont: document.getElementById('inp-toko-size').value,
                 slogan: document.getElementById('inp-slogan').value,
                 alamat: document.getElementById('inp-alamat').value,
                 telp: document.getElementById('inp-telp').value,
-                logoSrc: document.getElementById('out-logo').src 
+                logoSrc: document.getElementById('out-logo').src,
+                signName: document.getElementById('inp-sign-name').value, // Simpan nama ttd
+                signImgSrc: document.getElementById('out-sign-img').src, // Simpan foto ttd
+                disclaimer: document.getElementById('inp-disclaimer').value
             };
-
-            storeProfiles[profileName] = profileData;
-            
-            // Simpan ke Cloud
             syncToFirebase();
-            
             document.getElementById('inp-profile-name').value = '';
-            loadStoreProfilesList();
-            document.getElementById('sel-profile').value = profileName;
+            loadStoreProfilesList(); document.getElementById('sel-profile').value = profileName;
         }
 
         function loadSelectedProfile() {
@@ -538,39 +519,38 @@
             if (!profileName || !storeProfiles[profileName]) return;
 
             const data = storeProfiles[profileName];
-            
             document.getElementById('inp-toko').value = data.toko || '';
             document.getElementById('inp-toko-size').value = data.ukuranFont || '24';
             document.getElementById('inp-slogan').value = data.slogan || '';
             document.getElementById('inp-alamat').value = data.alamat || '';
             document.getElementById('inp-telp').value = data.telp || '';
             
-            const imgEl = document.getElementById('out-logo');
-            if (data.logoSrc && data.logoSrc.length > 100) {
-                imgEl.src = data.logoSrc;
-                imgEl.style.display = 'block';
-            } else {
-                imgEl.src = '';
-                imgEl.style.display = 'none';
-            }
+            document.getElementById('inp-sign-name').value = data.signName || 'Sakti Haryo Prakoso';
+            document.getElementById('inp-disclaimer').value = data.disclaimer || 'Nota ini dicetak secara digital dan dinyatakan sah meskipun tanpa stempel basah.';
+
+            const imgLogo = document.getElementById('out-logo');
+            if (data.logoSrc && data.logoSrc.length > 100) { imgLogo.src = data.logoSrc; imgLogo.style.display = 'block'; } 
+            else { imgLogo.src = ''; imgLogo.style.display = 'none'; }
+
+            const imgSign = document.getElementById('out-sign-img');
+            if (data.signImgSrc && data.signImgSrc.length > 100) { imgSign.src = data.signImgSrc; imgSign.style.display = 'block'; } 
+            else { imgSign.src = ''; imgSign.style.display = 'none'; }
 
             document.getElementById('inp-logo').value = '';
+            document.getElementById('inp-sign-img').value = '';
             updatePreview();
         }
 
         function deleteProfile() {
             const profileName = document.getElementById('sel-profile').value;
             if (!profileName) return;
-            
-            if (confirm(`Apakah Anda yakin ingin menghapus profil toko "${profileName}" dari sistem Cloud?`)) {
-                delete storeProfiles[profileName];
-                syncToFirebase(); // Hapus dari Cloud
-                loadStoreProfilesList();
-                document.getElementById('sel-profile').value = '';
+            if (confirm(`Hapus profil "${profileName}"?`)) {
+                delete storeProfiles[profileName]; syncToFirebase();
+                loadStoreProfilesList(); document.getElementById('sel-profile').value = '';
             }
         }
 
-        // --- 5. LOGIKA UI & ITEM (SAMA SEPERTI SEBELUMNYA) ---
+        // --- 5. LOGIKA UI & ITEM ---
         document.getElementById('inp-tanggal').valueAsDate = new Date();
 
         function formatUang(angka, mataUang) {
@@ -579,7 +559,7 @@
             return new Intl.NumberFormat(mataUang === 'IDR' ? 'id-ID' : 'en-US', options).format(angka);
         }
 
-        const inputs = ['inp-toko', 'inp-toko-size', 'inp-slogan', 'inp-alamat', 'inp-telp', 'inp-judul', 'inp-no', 'inp-tanggal', 'inp-duedate', 'inp-tujuan', 'inp-currency', 'inp-tax', 'inp-discount'];
+        const inputs = ['inp-toko', 'inp-toko-size', 'inp-slogan', 'inp-alamat', 'inp-telp', 'inp-judul', 'inp-no', 'inp-tanggal', 'inp-duedate', 'inp-tujuan', 'inp-currency', 'inp-tax', 'inp-discount', 'inp-sign-name', 'inp-disclaimer'];
         inputs.forEach(id => { document.getElementById(id).addEventListener('input', updatePreview); });
 
         document.getElementById('chk-duedate').addEventListener('change', function() { document.getElementById('wrap-duedate').style.display = this.checked ? 'block' : 'none'; document.getElementById('out-row-duedate').style.display = this.checked ? 'table-row' : 'none'; });
@@ -587,42 +567,35 @@
         document.getElementById('chk-discount').addEventListener('change', function() { document.getElementById('wrap-discount').style.display = this.checked ? 'block' : 'none'; document.getElementById('out-row-discount').style.display = this.checked ? 'table-row' : 'none'; updatePreview(); });
 
         document.getElementById('inp-logo').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
+            if (e.target.files[0]) {
                 const reader = new FileReader();
-                reader.onload = function(event) {
-                    const img = document.getElementById('out-logo');
-                    img.src = event.target.result;
-                    img.style.display = 'block';
-                }
-                reader.readAsDataURL(file);
+                reader.onload = function(event) { document.getElementById('out-logo').src = event.target.result; document.getElementById('out-logo').style.display = 'block'; }
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        });
+
+        // Event listener untuk upload gambar tanda tangan
+        document.getElementById('inp-sign-img').addEventListener('change', function(e) {
+            if (e.target.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(event) { document.getElementById('out-sign-img').src = event.target.result; document.getElementById('out-sign-img').style.display = 'block'; }
+                reader.readAsDataURL(e.target.files[0]);
             }
         });
 
         function loadItemDatabase() {
-            const datalist = document.getElementById('saved-items-list');
-            datalist.innerHTML = '';
+            const datalist = document.getElementById('saved-items-list'); datalist.innerHTML = '';
             for (let name in itemDatabase) {
-                let option = document.createElement('option');
-                option.value = name;
-                datalist.appendChild(option);
+                let option = document.createElement('option'); option.value = name; datalist.appendChild(option);
             }
         }
 
         document.getElementById('entry-name').addEventListener('input', function() {
-            const val = this.value;
-            if (itemDatabase[val]) {
-                document.getElementById('entry-price').value = itemDatabase[val].price;
-                document.getElementById('entry-unit').value = itemDatabase[val].unit;
-            }
+            if (itemDatabase[this.value]) { document.getElementById('entry-price').value = itemDatabase[this.value].price; document.getElementById('entry-unit').value = itemDatabase[this.value].unit; }
         });
 
         const entryFields = ['entry-name', 'entry-qty', 'entry-unit', 'entry-price'];
-        entryFields.forEach(id => {
-            document.getElementById(id).addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') { e.preventDefault(); addItem(); }
-            });
-        });
+        entryFields.forEach(id => { document.getElementById(id).addEventListener('keypress', function(e) { if (e.key === 'Enter') { e.preventDefault(); addItem(); } }); });
 
         function addItem() {
             const name = document.getElementById('entry-name').value.trim();
@@ -630,49 +603,22 @@
             const unit = document.getElementById('entry-unit').value.trim();
             const price = parseFloat(document.getElementById('entry-price').value);
 
-            if (!name || isNaN(qty) || isNaN(price)) {
-                alert("Mohon isi Nama Barang, Qty, dan Harga Satuan dengan benar!");
-                return;
-            }
+            if (!name || isNaN(qty) || isNaN(price)) { alert("Isi form dengan benar!"); return; }
 
             invoiceItems.push({ name, qty, unit, price });
-            
-            // Simpan ke Variabel dan Sinkron ke Cloud
-            itemDatabase[name] = { price: price, unit: unit };
-            syncToFirebase();
-            loadItemDatabase();
+            itemDatabase[name] = { price: price, unit: unit }; syncToFirebase(); loadItemDatabase();
 
-            document.getElementById('entry-name').value = '';
-            document.getElementById('entry-qty').value = '1';
-            document.getElementById('entry-price').value = '';
-            document.getElementById('entry-name').focus();
-
-            renderItems();
-            updatePreview();
+            document.getElementById('entry-name').value = ''; document.getElementById('entry-qty').value = '1'; document.getElementById('entry-price').value = ''; document.getElementById('entry-name').focus();
+            renderItems(); updatePreview();
         }
 
-        function removeItem(index) {
-            invoiceItems.splice(index, 1);
-            renderItems();
-            updatePreview();
-        }
+        function removeItem(index) { invoiceItems.splice(index, 1); renderItems(); updatePreview(); }
 
         function renderItems() {
-            const tbody = document.getElementById('out-items-body');
-            const currency = document.getElementById('inp-currency').value;
-            tbody.innerHTML = '';
-
+            const tbody = document.getElementById('out-items-body'); const currency = document.getElementById('inp-currency').value; tbody.innerHTML = '';
             invoiceItems.forEach((item, index) => {
-                const totalRow = item.qty * item.price;
                 const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${index + 1}</td>
-                    <td><b>${item.name}</b></td>
-                    <td class="center">${item.qty} ${item.unit}</td>
-                    <td class="right">${formatUang(item.price, currency)}</td>
-                    <td class="right"><b>${formatUang(totalRow, currency)}</b></td>
-                    <td class="hidden-print"><button class="btn-remove" onclick="removeItem(${index})">X</button></td>
-                `;
+                tr.innerHTML = `<td>${index + 1}</td><td><b>${item.name}</b></td><td class="center">${item.qty} ${item.unit}</td><td class="right">${formatUang(item.price, currency)}</td><td class="right"><b>${formatUang(item.qty * item.price, currency)}</b></td><td class="hidden-print"><button class="btn-remove" onclick="removeItem(${index})">X</button></td>`;
                 tbody.appendChild(tr);
             });
         }
@@ -685,45 +631,32 @@
             document.getElementById('out-judul').innerText = document.getElementById('inp-judul').value || 'INVOICE';
             document.getElementById('out-no').innerText = '#' + document.getElementById('inp-no').value;
             
-            const slogan = document.getElementById('inp-slogan').value;
-            const alamat = document.getElementById('inp-alamat').value;
-            const telp = document.getElementById('inp-telp').value;
-            
-            const outSlogan = document.getElementById('out-slogan');
-            const outAlamat = document.getElementById('out-alamat');
-            const outTelp = document.getElementById('out-telp');
-
-            outSlogan.innerText = slogan;
-            outSlogan.style.display = slogan ? 'block' : 'none';
-            outAlamat.innerText = alamat;
-            outAlamat.style.display = alamat ? 'block' : 'none';
-            outTelp.innerText = telp ? 'Telp/WA: ' + telp : '';
-            outTelp.style.display = telp ? 'block' : 'none';
+            const slogan = document.getElementById('inp-slogan').value; const alamat = document.getElementById('inp-alamat').value; const telp = document.getElementById('inp-telp').value;
+            document.getElementById('out-slogan').innerText = slogan; document.getElementById('out-slogan').style.display = slogan ? 'block' : 'none';
+            document.getElementById('out-alamat').innerText = alamat; document.getElementById('out-alamat').style.display = alamat ? 'block' : 'none';
+            document.getElementById('out-telp').innerText = telp ? 'Telp/WA: ' + telp : ''; document.getElementById('out-telp').style.display = telp ? 'block' : 'none';
 
             document.getElementById('out-tanggal').innerText = document.getElementById('inp-tanggal').value;
             document.getElementById('out-duedate').innerText = document.getElementById('inp-duedate').value || '-';
             document.getElementById('out-tujuan').innerText = document.getElementById('inp-tujuan').value || '-';
 
+            // Update Sign & Disclaimer
+            document.getElementById('out-sign-name').innerText = document.getElementById('inp-sign-name').value;
+            document.getElementById('out-disclaimer').innerText = document.getElementById('inp-disclaimer').value;
+
             let subtotal = invoiceItems.reduce((sum, item) => sum + (item.qty * item.price), 0);
-            let taxAmount = 0;
-            let discountAmount = 0;
+            let taxAmount = 0; let discountAmount = 0;
 
             if (document.getElementById('chk-tax').checked) {
                 const taxPercent = parseFloat(document.getElementById('inp-tax').value) || 0;
-                document.getElementById('out-tax-label').innerText = taxPercent;
-                taxAmount = subtotal * (taxPercent / 100);
+                document.getElementById('out-tax-label').innerText = taxPercent; taxAmount = subtotal * (taxPercent / 100);
             }
-
-            if (document.getElementById('chk-discount').checked) {
-                discountAmount = parseFloat(document.getElementById('inp-discount').value) || 0;
-            }
-
-            let finalTotal = subtotal + taxAmount - discountAmount;
+            if (document.getElementById('chk-discount').checked) discountAmount = parseFloat(document.getElementById('inp-discount').value) || 0;
 
             document.getElementById('out-subtotal').innerText = formatUang(subtotal, currency);
             document.getElementById('out-tax-amount').innerText = formatUang(taxAmount, currency);
             document.getElementById('out-discount-amount').innerText = "-" + formatUang(discountAmount, currency);
-            document.getElementById('out-total').innerText = formatUang(finalTotal, currency);
+            document.getElementById('out-total').innerText = formatUang(subtotal + taxAmount - discountAmount, currency);
             
             renderItems();
         }
@@ -732,53 +665,32 @@
         function closeDbModal() { document.getElementById('db-modal').style.display = 'none'; }
         
         function renderDbTable() {
-            const tbody = document.getElementById('db-table-body');
-            const currency = document.getElementById('inp-currency').value;
-            tbody.innerHTML = '';
-            
+            const tbody = document.getElementById('db-table-body'); const currency = document.getElementById('inp-currency').value; tbody.innerHTML = '';
             let no = 1;
             for (let name in itemDatabase) {
-                const item = itemDatabase[name];
-                const tr = document.createElement('tr');
                 const safeName = name.replace(/'/g, "\\'"); 
-                tr.innerHTML = `
-                    <td>${no++}</td>
-                    <td>${name}</td>
-                    <td>${formatUang(item.price, currency)}</td>
-                    <td>${item.unit}</td>
-                    <td><button class="btn-delete-db" onclick="deleteDbItem('${safeName}')">Hapus</button></td>
-                `;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${no++}</td><td>${name}</td><td>${formatUang(itemDatabase[name].price, currency)}</td><td>${itemDatabase[name].unit}</td><td><button class="btn-delete-db" onclick="deleteDbItem('${safeName}')">Hapus</button></td>`;
                 tbody.appendChild(tr);
             }
             if (no === 1) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px;">Belum ada data barang tersimpan.</td></tr>';
         }
 
         function deleteDbItem(name) {
-            if(confirm(`Apakah Anda yakin ingin menghapus "${name}" dari sistem Cloud?`)) {
-                delete itemDatabase[name];
-                syncToFirebase(); // Hapus dari Cloud
-                renderDbTable(); 
-                loadItemDatabase(); 
-            }
+            if(confirm(`Hapus "${name}" dari sistem Cloud?`)) { delete itemDatabase[name]; syncToFirebase(); renderDbTable(); loadItemDatabase(); }
         }
 
-        window.onclick = function(event) {
-            if (event.target == document.getElementById('db-modal')) closeDbModal();
-        }
+        window.onclick = function(event) { if (event.target == document.getElementById('db-modal')) closeDbModal(); }
 
         function saveAsImage() {
             document.querySelectorAll('.hidden-print').forEach(el => el.style.display = 'none');
-            const element = document.getElementById('invoice-paper');
-            html2canvas(element, { scale: 2 }).then(canvas => {
-                const link = document.createElement('a');
-                link.download = `Nota_${document.getElementById('inp-no').value}.png`;
-                link.href = canvas.toDataURL("image/png");
-                link.click();
+            html2canvas(document.getElementById('invoice-paper'), { scale: 2 }).then(canvas => {
+                const link = document.createElement('a'); link.download = `Nota_${document.getElementById('inp-no').value}.png`;
+                link.href = canvas.toDataURL("image/png"); link.click();
                 document.querySelectorAll('.hidden-print').forEach(el => el.style.display = 'inline-block');
             });
         }
 
-        // Inisialisasi Preview Awal
         updatePreview();
 
     </script>
