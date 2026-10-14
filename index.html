@@ -24,7 +24,7 @@
         .controls { width: 45%; padding: 20px; overflow-y: auto; background: var(--panel-bg); border-right: 2px solid var(--border); box-shadow: 2px 0 10px rgba(0,0,0,0.05); z-index: 10; }
         .preview-container { width: 55%; padding: 30px; overflow-y: auto; display: flex; justify-content: center; align-items: flex-start; }
 
-        h2 { margin-bottom: 15px; font-size: 1.2rem; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 5px; }
+        h2 { margin-bottom: 15px; font-size: 1.2rem; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 5px; display: flex; justify-content: space-between; align-items: center; }
         
         .form-group { margin-bottom: 12px; }
         label { display: block; font-size: 0.85rem; margin-bottom: 4px; font-weight: 600; color: #4b5563; }
@@ -54,9 +54,11 @@
         /* Desain Preview Nota */
         .invoice-paper { width: 100%; max-width: 800px; background: white; padding: 40px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 4px; position: relative; }
         .inv-header { display: flex; justify-content: space-between; margin-bottom: 30px; border-bottom: 2px solid var(--border); padding-bottom: 20px; }
-        .inv-logo-toko { display: flex; flex-direction: column; gap: 10px; max-width: 50%; }
-        .inv-logo-toko img { max-width: 120px; max-height: 80px; object-fit: contain; display: none; }
+        .inv-logo-toko { display: flex; gap: 15px; max-width: 60%; align-items: flex-start; }
+        .inv-logo-toko img { max-width: 100px; max-height: 80px; object-fit: contain; display: none; }
+        .inv-toko-details { display: flex; flex-direction: column; }
         .inv-toko-name { font-weight: bold; margin: 0; word-break: break-word; }
+        
         .inv-title-section { text-align: right; }
         .inv-title { font-size: 2rem; font-weight: bold; color: var(--text-main); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px; }
         
@@ -79,6 +81,19 @@
         .btn-remove { background: #ef4444; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 0.8rem; }
         
         .hidden-print { display: inline-block; }
+
+        /* Modal Database Styles */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 25px; border-radius: 8px; width: 80%; max-width: 600px; max-height: 80vh; overflow-y: auto; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .modal-close { position: absolute; top: 15px; right: 20px; font-size: 1.5rem; cursor: pointer; border: none; background: none; color: #6b7280; }
+        .modal-close:hover { color: #111827; }
+        .db-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .db-table th, .db-table td { padding: 10px; border: 1px solid var(--border); text-align: left; font-size: 0.9rem;}
+        .db-table th { background: var(--bg-color); }
+        .btn-lihat-db { background: #6b7280; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; }
+        .btn-lihat-db:hover { background: #4b5563; }
+        .btn-delete-db { background: #ef4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+        .btn-delete-db:hover { background: #dc2626; }
 
         /* Media Query Print */
         @media print {
@@ -109,14 +124,26 @@
                 <input type="number" id="inp-toko-size" value="24" min="12" max="48">
             </div>
         </div>
+        
+        <!-- Tambahan Slogan, Alamat, Telepon -->
+        <div class="form-group">
+            <label>Slogan Toko (Opsional)</label>
+            <input type="text" id="inp-slogan" placeholder="Cth: Belanja Murah & Lengkap">
+        </div>
+        <div class="form-group">
+            <label>Alamat Toko (Opsional)</label>
+            <textarea id="inp-alamat" rows="2" placeholder="Nama Jalan, Kota, dll..."></textarea>
+        </div>
+        <div class="form-group">
+            <label>No. Telepon / WA (Opsional)</label>
+            <input type="text" id="inp-telp" placeholder="0812xxxxxx">
+        </div>
+
         <div class="flex-row">
             <div class="form-group">
                 <label>Judul Nota</label>
-                <select id="inp-judul">
-                    <option value="INVOICE">INVOICE</option>
-                    <option value="NOTA PEMBELIAN">NOTA PEMBELIAN</option>
-                    <option value="KUITANSI">KUITANSI</option>
-                </select>
+                <!-- Diubah jadi input text agar bisa diketik bebas -->
+                <input type="text" id="inp-judul" value="INVOICE">
             </div>
             <div class="form-group">
                 <label>Mata Uang</label>
@@ -151,7 +178,10 @@
             <textarea id="inp-tujuan" rows="3" placeholder="Nama Pelanggan&#10;Alamat Lengkap"></textarea>
         </div>
 
-        <h2>3. Pengisian Item</h2>
+        <h2>
+            3. Pengisian Item
+            <button class="btn-lihat-db" onclick="openDbModal()">📁 Lihat Database Barang</button>
+        </h2>
         <!-- Datalist untuk Autocomplete dari Database Lokal -->
         <datalist id="saved-items-list"></datalist>
 
@@ -207,7 +237,13 @@
             <div class="inv-header">
                 <div class="inv-logo-toko">
                     <img id="out-logo" src="" alt="Logo">
-                    <h1 class="inv-toko-name" id="out-toko">Toko Serba Ada</h1>
+                    <div class="inv-toko-details">
+                        <h1 class="inv-toko-name" id="out-toko">Toko Serba Ada</h1>
+                        <!-- Tambahan Detail Toko -->
+                        <div id="out-slogan" style="font-size: 0.9rem; font-style: italic; color: #4b5563; margin-top: 3px; display: none;"></div>
+                        <div id="out-alamat" style="font-size: 0.85rem; margin-top: 6px; white-space: pre-wrap; display: none;"></div>
+                        <div id="out-telp" style="font-size: 0.85rem; font-weight: bold; margin-top: 3px; display: none;"></div>
+                    </div>
                 </div>
                 <div class="inv-title-section">
                     <div class="inv-title" id="out-judul">INVOICE</div>
@@ -274,6 +310,29 @@
         </div>
     </div>
 
+    <!-- Modal Database Barang -->
+    <div id="db-modal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeDbModal()">&times;</button>
+            <h2 style="border: none; padding-bottom: 0;">Database Barang Tersimpan</h2>
+            <p style="font-size: 0.85rem; color: #6b7280; margin-bottom: 15px;">Daftar barang ini tersimpan secara lokal di perangkat Anda.</p>
+            <table class="db-table">
+                <thead>
+                    <tr>
+                        <th style="width: 5%">No</th>
+                        <th>Nama Barang</th>
+                        <th style="width: 25%">Harga</th>
+                        <th style="width: 15%">Satuan</th>
+                        <th style="width: 10%">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="db-table-body">
+                    <!-- Data tabel masuk sini -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <script>
         // Set Default Date Hari Ini
         document.getElementById('inp-tanggal').valueAsDate = new Date();
@@ -287,12 +346,15 @@
             if (mataUang === 'USD') options.maximumFractionDigits = 2; // USD butuh desimal
             
             let formatted = new Intl.NumberFormat(mataUang === 'IDR' ? 'id-ID' : 'en-US', options).format(angka);
-            // Hapus karakter Rp jika terdeteksi agar bisa manual ditaruh jika butuh, tapi standard Intl sudah bagus
             return formatted;
         }
 
-        // Live Update Event Listeners
-        const inputs = ['inp-toko', 'inp-toko-size', 'inp-judul', 'inp-no', 'inp-tanggal', 'inp-duedate', 'inp-tujuan', 'inp-currency', 'inp-tax', 'inp-discount'];
+        // Live Update Event Listeners (Ditambah slogan, alamat, telp)
+        const inputs = [
+            'inp-toko', 'inp-toko-size', 'inp-slogan', 'inp-alamat', 'inp-telp', 
+            'inp-judul', 'inp-no', 'inp-tanggal', 'inp-duedate', 'inp-tujuan', 
+            'inp-currency', 'inp-tax', 'inp-discount'
+        ];
         inputs.forEach(id => {
             document.getElementById(id).addEventListener('input', updatePreview);
         });
@@ -420,10 +482,28 @@
             // Update Teks Dasar
             document.getElementById('out-toko').innerText = document.getElementById('inp-toko').value;
             document.getElementById('out-toko').style.fontSize = document.getElementById('inp-toko-size').value + 'px';
-            document.getElementById('out-judul').innerText = document.getElementById('inp-judul').value;
+            document.getElementById('out-judul').innerText = document.getElementById('inp-judul').value || 'INVOICE';
             document.getElementById('out-no').innerText = '#' + document.getElementById('inp-no').value;
             
-            // Format Tanggal (Opsional bisa di format cantik)
+            // Update Slogan, Alamat, Telp (Sembunyikan jika kosong)
+            const slogan = document.getElementById('inp-slogan').value;
+            const alamat = document.getElementById('inp-alamat').value;
+            const telp = document.getElementById('inp-telp').value;
+            
+            const outSlogan = document.getElementById('out-slogan');
+            const outAlamat = document.getElementById('out-alamat');
+            const outTelp = document.getElementById('out-telp');
+
+            outSlogan.innerText = slogan;
+            outSlogan.style.display = slogan ? 'block' : 'none';
+            
+            outAlamat.innerText = alamat;
+            outAlamat.style.display = alamat ? 'block' : 'none';
+            
+            outTelp.innerText = telp ? 'Telp/WA: ' + telp : '';
+            outTelp.style.display = telp ? 'block' : 'none';
+
+            // Format Tanggal
             document.getElementById('out-tanggal').innerText = document.getElementById('inp-tanggal').value;
             document.getElementById('out-duedate').innerText = document.getElementById('inp-duedate').value || '-';
             document.getElementById('out-tujuan').innerText = document.getElementById('inp-tujuan').value || '-';
@@ -452,8 +532,61 @@
             document.getElementById('out-discount-amount').innerText = "-" + formatUang(discountAmount, currency);
             document.getElementById('out-total').innerText = formatUang(finalTotal, currency);
             
-            // Jika mata uang berubah, re-render tabel item agar format harga satuan berubah
+            // Jika mata uang berubah, re-render tabel item
             renderItems();
+        }
+
+        // Fungsi Modal Database
+        function openDbModal() {
+            document.getElementById('db-modal').style.display = 'flex';
+            renderDbTable();
+        }
+
+        function closeDbModal() {
+            document.getElementById('db-modal').style.display = 'none';
+        }
+
+        function renderDbTable() {
+            const tbody = document.getElementById('db-table-body');
+            const currency = document.getElementById('inp-currency').value;
+            tbody.innerHTML = '';
+            
+            let no = 1;
+            for (let name in itemDatabase) {
+                const item = itemDatabase[name];
+                const tr = document.createElement('tr');
+                // Escape petik tunggal untuk keamanan fungsi onclick
+                const safeName = name.replace(/'/g, "\\'"); 
+                tr.innerHTML = `
+                    <td>${no++}</td>
+                    <td>${name}</td>
+                    <td>${formatUang(item.price, currency)}</td>
+                    <td>${item.unit}</td>
+                    <td><button class="btn-delete-db" onclick="deleteDbItem('${safeName}')">Hapus</button></td>
+                `;
+                tbody.appendChild(tr);
+            }
+
+            if (no === 1) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px;">Belum ada data barang tersimpan.</td></tr>';
+            }
+        }
+
+        function deleteDbItem(name) {
+            if(confirm(`Apakah Anda yakin ingin menghapus "${name}" dari database lokal?`)) {
+                delete itemDatabase[name];
+                localStorage.setItem('myNotaItems', JSON.stringify(itemDatabase));
+                renderDbTable(); // Refresh tabel di modal
+                loadItemDatabase(); // Refresh autocomplete
+            }
+        }
+
+        // Tutup modal jika klik area luar modal
+        window.onclick = function(event) {
+            const modal = document.getElementById('db-modal');
+            if (event.target == modal) {
+                closeDbModal();
+            }
         }
 
         // Fungsi Save Image menggunakan HTML2Canvas
