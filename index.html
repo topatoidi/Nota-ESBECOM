@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Nota & Invoice Custom</title>
+    <!-- Library untuk save ke gambar -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #f3f4f6;
+            --panel-bg: #ffffff;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --text-main: #1f2937;
+            --border: #e5e7eb;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        body { background-color: var(--bg-color); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
+
+        /* Layout Kiri (Kontrol) dan Kanan (Preview) */
+        .controls { width: 45%; padding: 20px; overflow-y: auto; background: var(--panel-bg); border-right: 2px solid var(--border); box-shadow: 2px 0 10px rgba(0,0,0,0.05); z-index: 10; }
+        .preview-container { width: 55%; padding: 30px; overflow-y: auto; display: flex; justify-content: center; align-items: flex-start; }
+
+        h2 { margin-bottom: 15px; font-size: 1.2rem; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 5px; }
+        
+        .form-group { margin-bottom: 12px; }
+        label { display: block; font-size: 0.85rem; margin-bottom: 4px; font-weight: 600; color: #4b5563; }
+        input[type="text"], input[type="number"], input[type="date"], select, textarea {
+            width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.9rem;
+        }
+        .flex-row { display: flex; gap: 10px; align-items: center; }
+        .flex-row > div { flex: 1; }
+        
+        /* Item Input Khusus (Mendatar) */
+        .item-entry-row { display: flex; gap: 8px; align-items: flex-end; background: #f9fafb; padding: 10px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 15px; }
+        .item-entry-row > div { display: flex; flex-direction: column; }
+        .item-entry-row input { padding: 8px; }
+        .btn-add { background: var(--primary); color: white; border: none; padding: 9px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; white-space: nowrap; }
+        .btn-add:hover { background: var(--primary-hover); }
+
+        .checkbox-group { display: flex; gap: 15px; margin-bottom: 15px; font-size: 0.9rem; align-items: center; }
+        .checkbox-group input { transform: scale(1.2); cursor: pointer; }
+
+        .actions { display: flex; gap: 10px; margin-top: 20px; }
+        .btn-action { flex: 1; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; color: white; }
+        .btn-print { background: #10b981; }
+        .btn-print:hover { background: #059669; }
+        .btn-save { background: #f59e0b; }
+        .btn-save:hover { background: #d97706; }
+
+        /* Desain Preview Nota */
+        .invoice-paper { width: 100%; max-width: 800px; background: white; padding: 40px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 4px; position: relative; }
+        .inv-header { display: flex; justify-content: space-between; margin-bottom: 30px; border-bottom: 2px solid var(--border); padding-bottom: 20px; }
+        .inv-logo-toko { display: flex; flex-direction: column; gap: 10px; max-width: 50%; }
+        .inv-logo-toko img { max-width: 120px; max-height: 80px; object-fit: contain; display: none; }
+        .inv-toko-name { font-weight: bold; margin: 0; word-break: break-word; }
+        .inv-title-section { text-align: right; }
+        .inv-title { font-size: 2rem; font-weight: bold; color: var(--text-main); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px; }
+        
+        .inv-meta { display: flex; justify-content: space-between; margin-bottom: 30px; }
+        .inv-tujuan, .inv-details { width: 45%; }
+        .inv-details table { width: 100%; text-align: right; }
+        .inv-details th { color: #6b7280; font-weight: normal; padding-right: 10px; }
+
+        .inv-items { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .inv-items th { background: var(--bg-color); padding: 10px; text-align: left; border-bottom: 2px solid var(--border); font-size: 0.9rem; }
+        .inv-items td { padding: 10px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        .inv-items th.right, .inv-items td.right { text-align: right; }
+        .inv-items th.center, .inv-items td.center { text-align: center; }
+
+        .inv-summary { width: 50%; margin-left: auto; }
+        .inv-summary table { width: 100%; }
+        .inv-summary th, .inv-summary td { padding: 8px; text-align: right; font-size: 0.95rem; }
+        .inv-summary .total-row { font-size: 1.2rem; font-weight: bold; border-top: 2px solid var(--text-main); }
+
+        .btn-remove { background: #ef4444; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 0.8rem; }
+        
+        .hidden-print { display: inline-block; }
+
+        /* Media Query Print */
+        @media print {
+            body { background: white; display: block; overflow: auto; height: auto; }
+            .controls { display: none !important; }
+            .preview-container { width: 100%; padding: 0; justify-content: flex-start; }
+            .invoice-paper { box-shadow: none; padding: 0; max-width: 100%; }
+            .hidden-print { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Panel Kontrol Kiri -->
+    <div class="controls">
+        <h2>1. Pengaturan Header Nota</h2>
+        <div class="form-group">
+            <label>Logo Toko (Opsional)</label>
+            <input type="file" id="inp-logo" accept="image/*">
+        </div>
+        <div class="flex-row">
+            <div class="form-group" style="flex: 2;">
+                <label>Nama Toko</label>
+                <input type="text" id="inp-toko" value="Toko Serba Ada">
+            </div>
+            <div class="form-group" style="flex: 1;">
+                <label>Ukuran Font Toko</label>
+                <input type="number" id="inp-toko-size" value="24" min="12" max="48">
+            </div>
+        </div>
+        <div class="flex-row">
+            <div class="form-group">
+                <label>Judul Nota</label>
+                <select id="inp-judul">
+                    <option value="INVOICE">INVOICE</option>
+                    <option value="NOTA PEMBELIAN">NOTA PEMBELIAN</option>
+                    <option value="KUITANSI">KUITANSI</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Mata Uang</label>
+                <select id="inp-currency">
+                    <option value="IDR">Rupiah (Rp)</option>
+                    <option value="USD">USD ($)</option>
+                    <option value="EUR">Euro (€)</option>
+                </select>
+            </div>
+        </div>
+
+        <h2>2. Detail Nota & Tujuan</h2>
+        <div class="flex-row">
+            <div class="form-group">
+                <label>Nomor Nota</label>
+                <input type="text" id="inp-no" value="INV-001">
+            </div>
+            <div class="form-group">
+                <label>Tanggal</label>
+                <input type="date" id="inp-tanggal">
+            </div>
+        </div>
+        <div class="checkbox-group">
+            <label><input type="checkbox" id="chk-duedate" checked> Tampilkan Due Date</label>
+        </div>
+        <div class="form-group" id="wrap-duedate">
+            <label>Due Date</label>
+            <input type="date" id="inp-duedate">
+        </div>
+        <div class="form-group">
+            <label>Tujuan Dikirim (Kepada Yth.)</label>
+            <textarea id="inp-tujuan" rows="3" placeholder="Nama Pelanggan&#10;Alamat Lengkap"></textarea>
+        </div>
+
+        <h2>3. Pengisian Item</h2>
+        <!-- Datalist untuk Autocomplete dari Database Lokal -->
+        <datalist id="saved-items-list"></datalist>
+
+        <div class="item-entry-row">
+            <div style="flex: 3;">
+                <label>Nama Barang</label>
+                <input type="text" id="entry-name" list="saved-items-list" placeholder="Ketik nama / cari..." autocomplete="off">
+            </div>
+            <div style="flex: 1;">
+                <label>Jml</label>
+                <input type="number" id="entry-qty" value="1" min="1">
+            </div>
+            <div style="flex: 1.5;">
+                <label>Satuan</label>
+                <input type="text" id="entry-unit" placeholder="Pcs, Kg..." value="Pcs">
+            </div>
+            <div style="flex: 2;">
+                <label>Harga Satuan</label>
+                <input type="number" id="entry-price" placeholder="0">
+            </div>
+            <div>
+                <button class="btn-add" onclick="addItem()">+ ADD ITEM</button>
+            </div>
+        </div>
+
+        <h2>4. Pengaturan Tambahan</h2>
+        <div class="checkbox-group">
+            <label><input type="checkbox" id="chk-tax"> Tambah Pajak (Tax %)</label>
+            <label><input type="checkbox" id="chk-discount"> Tambah Diskon</label>
+        </div>
+        
+        <div class="flex-row">
+            <div class="form-group" id="wrap-tax" style="display: none;">
+                <label>Pajak (%)</label>
+                <input type="number" id="inp-tax" value="11" min="0">
+            </div>
+            <div class="form-group" id="wrap-discount" style="display: none;">
+                <label>Diskon (Nominal)</label>
+                <input type="number" id="inp-discount" value="0" min="0">
+            </div>
+        </div>
+
+        <div class="actions">
+            <button class="btn-action btn-print" onclick="window.print()">🖨️ Print Nota</button>
+            <button class="btn-action btn-save" onclick="saveAsImage()">🖼️ Save as Image</button>
+        </div>
+    </div>
+
+    <!-- Panel Kanan Preview -->
+    <div class="preview-container">
+        <div class="invoice-paper" id="invoice-paper">
+            
+            <div class="inv-header">
+                <div class="inv-logo-toko">
+                    <img id="out-logo" src="" alt="Logo">
+                    <h1 class="inv-toko-name" id="out-toko">Toko Serba Ada</h1>
+                </div>
+                <div class="inv-title-section">
+                    <div class="inv-title" id="out-judul">INVOICE</div>
+                    <div id="out-no" style="color: #6b7280; font-weight: bold;">#INV-001</div>
+                </div>
+            </div>
+
+            <div class="inv-meta">
+                <div class="inv-tujuan">
+                    <div style="color: #6b7280; margin-bottom: 5px;">Kepada Yth:</div>
+                    <div id="out-tujuan" style="white-space: pre-wrap; font-weight: 500;">-</div>
+                </div>
+                <div class="inv-details">
+                    <table>
+                        <tr>
+                            <th>Tanggal:</th>
+                            <td id="out-tanggal">-</td>
+                        </tr>
+                        <tr id="out-row-duedate">
+                            <th>Due Date:</th>
+                            <td id="out-duedate">-</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <table class="inv-items">
+                <thead>
+                    <tr>
+                        <th style="width: 5%">No</th>
+                        <th style="width: 40%">Deskripsi Barang</th>
+                        <th class="center" style="width: 15%">Qty</th>
+                        <th class="right" style="width: 20%">Harga Satuan</th>
+                        <th class="right" style="width: 20%">Jumlah</th>
+                        <th class="hidden-print"></th>
+                    </tr>
+                </thead>
+                <tbody id="out-items-body">
+                    <!-- Items masuk kesini -->
+                </tbody>
+            </table>
+
+            <div class="inv-summary">
+                <table>
+                    <tr>
+                        <th>Subtotal:</th>
+                        <td id="out-subtotal">Rp 0</td>
+                    </tr>
+                    <tr id="out-row-tax" style="display: none;">
+                        <th>Pajak (<span id="out-tax-label">0</span>%):</th>
+                        <td id="out-tax-amount">Rp 0</td>
+                    </tr>
+                    <tr id="out-row-discount" style="display: none;">
+                        <th>Diskon:</th>
+                        <td id="out-discount-amount">Rp 0</td>
+                    </tr>
+                    <tr class="total-row">
+                        <th>TOTAL:</th>
+                        <td id="out-total">Rp 0</td>
+                    </tr>
+                </table>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Set Default Date Hari Ini
+        document.getElementById('inp-tanggal').valueAsDate = new Date();
+        
+        let invoiceItems = [];
+        let itemDatabase = JSON.parse(localStorage.getItem('myNotaItems')) || {};
+
+        // Fungsi Format Uang
+        function formatUang(angka, mataUang) {
+            let options = { style: 'currency', currency: mataUang, minimumFractionDigits: 0, maximumFractionDigits: 0 };
+            if (mataUang === 'USD') options.maximumFractionDigits = 2; // USD butuh desimal
+            
+            let formatted = new Intl.NumberFormat(mataUang === 'IDR' ? 'id-ID' : 'en-US', options).format(angka);
+            // Hapus karakter Rp jika terdeteksi agar bisa manual ditaruh jika butuh, tapi standard Intl sudah bagus
+            return formatted;
+        }
+
+        // Live Update Event Listeners
+        const inputs = ['inp-toko', 'inp-toko-size', 'inp-judul', 'inp-no', 'inp-tanggal', 'inp-duedate', 'inp-tujuan', 'inp-currency', 'inp-tax', 'inp-discount'];
+        inputs.forEach(id => {
+            document.getElementById(id).addEventListener('input', updatePreview);
+        });
+
+        // Toggle Listeners
+        document.getElementById('chk-duedate').addEventListener('change', function() {
+            document.getElementById('wrap-duedate').style.display = this.checked ? 'block' : 'none';
+            document.getElementById('out-row-duedate').style.display = this.checked ? 'table-row' : 'none';
+        });
+        document.getElementById('chk-tax').addEventListener('change', function() {
+            document.getElementById('wrap-tax').style.display = this.checked ? 'block' : 'none';
+            document.getElementById('out-row-tax').style.display = this.checked ? 'table-row' : 'none';
+            updatePreview();
+        });
+        document.getElementById('chk-discount').addEventListener('change', function() {
+            document.getElementById('wrap-discount').style.display = this.checked ? 'block' : 'none';
+            document.getElementById('out-row-discount').style.display = this.checked ? 'table-row' : 'none';
+            updatePreview();
+        });
+
+        // Logo Upload
+        document.getElementById('inp-logo').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = document.getElementById('out-logo');
+                    img.src = event.target.result;
+                    img.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Fitur Autocomplete
+        function loadItemDatabase() {
+            const datalist = document.getElementById('saved-items-list');
+            datalist.innerHTML = '';
+            for (let name in itemDatabase) {
+                let option = document.createElement('option');
+                option.value = name;
+                datalist.appendChild(option);
+            }
+        }
+
+        // Saat memilih autocomplete, auto-fill harga & satuan
+        document.getElementById('entry-name').addEventListener('input', function() {
+            const val = this.value;
+            if (itemDatabase[val]) {
+                document.getElementById('entry-price').value = itemDatabase[val].price;
+                document.getElementById('entry-unit').value = itemDatabase[val].unit;
+            }
+        });
+
+        // Deteksi Enter di input barang
+        const entryFields = ['entry-name', 'entry-qty', 'entry-unit', 'entry-price'];
+        entryFields.forEach(id => {
+            document.getElementById(id).addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addItem();
+                }
+            });
+        });
+
+        // Fungsi Tambah Item
+        function addItem() {
+            const name = document.getElementById('entry-name').value.trim();
+            const qty = parseFloat(document.getElementById('entry-qty').value);
+            const unit = document.getElementById('entry-unit').value.trim();
+            const price = parseFloat(document.getElementById('entry-price').value);
+
+            if (!name || isNaN(qty) || isNaN(price)) {
+                alert("Mohon isi Nama Barang, Qty, dan Harga Satuan dengan benar!");
+                return;
+            }
+
+            // Tambahkan ke array preview
+            invoiceItems.push({ name, qty, unit, price });
+            
+            // Simpan ke Database Lokal (HANYA SAAT TOMBOL ADD DIKLIK / ENTER)
+            itemDatabase[name] = { price: price, unit: unit };
+            localStorage.setItem('myNotaItems', JSON.stringify(itemDatabase));
+            loadItemDatabase(); // Refresh list search
+
+            // Reset Input
+            document.getElementById('entry-name').value = '';
+            document.getElementById('entry-qty').value = '1';
+            document.getElementById('entry-price').value = '';
+            document.getElementById('entry-name').focus();
+
+            renderItems();
+            updatePreview();
+        }
+
+        function removeItem(index) {
+            invoiceItems.splice(index, 1);
+            renderItems();
+            updatePreview();
+        }
+
+        function renderItems() {
+            const tbody = document.getElementById('out-items-body');
+            const currency = document.getElementById('inp-currency').value;
+            tbody.innerHTML = '';
+
+            invoiceItems.forEach((item, index) => {
+                const totalRow = item.qty * item.price;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td><b>${item.name}</b></td>
+                    <td class="center">${item.qty} ${item.unit}</td>
+                    <td class="right">${formatUang(item.price, currency)}</td>
+                    <td class="right"><b>${formatUang(totalRow, currency)}</b></td>
+                    <td class="hidden-print"><button class="btn-remove" onclick="removeItem(${index})">X</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updatePreview() {
+            const currency = document.getElementById('inp-currency').value;
+
+            // Update Teks Dasar
+            document.getElementById('out-toko').innerText = document.getElementById('inp-toko').value;
+            document.getElementById('out-toko').style.fontSize = document.getElementById('inp-toko-size').value + 'px';
+            document.getElementById('out-judul').innerText = document.getElementById('inp-judul').value;
+            document.getElementById('out-no').innerText = '#' + document.getElementById('inp-no').value;
+            
+            // Format Tanggal (Opsional bisa di format cantik)
+            document.getElementById('out-tanggal').innerText = document.getElementById('inp-tanggal').value;
+            document.getElementById('out-duedate').innerText = document.getElementById('inp-duedate').value || '-';
+            document.getElementById('out-tujuan').innerText = document.getElementById('inp-tujuan').value || '-';
+
+            // Hitung Uang
+            let subtotal = invoiceItems.reduce((sum, item) => sum + (item.qty * item.price), 0);
+            
+            let taxAmount = 0;
+            let discountAmount = 0;
+
+            if (document.getElementById('chk-tax').checked) {
+                const taxPercent = parseFloat(document.getElementById('inp-tax').value) || 0;
+                document.getElementById('out-tax-label').innerText = taxPercent;
+                taxAmount = subtotal * (taxPercent / 100);
+            }
+
+            if (document.getElementById('chk-discount').checked) {
+                discountAmount = parseFloat(document.getElementById('inp-discount').value) || 0;
+            }
+
+            let finalTotal = subtotal + taxAmount - discountAmount;
+
+            // Render Uang di Layar
+            document.getElementById('out-subtotal').innerText = formatUang(subtotal, currency);
+            document.getElementById('out-tax-amount').innerText = formatUang(taxAmount, currency);
+            document.getElementById('out-discount-amount').innerText = "-" + formatUang(discountAmount, currency);
+            document.getElementById('out-total').innerText = formatUang(finalTotal, currency);
+            
+            // Jika mata uang berubah, re-render tabel item agar format harga satuan berubah
+            renderItems();
+        }
+
+        // Fungsi Save Image menggunakan HTML2Canvas
+        function saveAsImage() {
+            // Sembunyikan tombol X sementara
+            document.querySelectorAll('.hidden-print').forEach(el => el.style.display = 'none');
+            
+            const element = document.getElementById('invoice-paper');
+            html2canvas(element, { scale: 2 }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `Nota_${document.getElementById('inp-no').value}.png`;
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+                
+                // Munculkan kembali tombol X
+                document.querySelectorAll('.hidden-print').forEach(el => el.style.display = 'inline-block');
+            });
+        }
+
+        // Inisialisasi awal
+        loadItemDatabase();
+        updatePreview();
+
+    </script>
+</body>
+</html>
