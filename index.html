@@ -4,8 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aplikasi Nota & Invoice Custom</title>
+    
     <!-- Library untuk save ke gambar -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <!-- Library Firebase (Database Online) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
     <style>
         :root {
             --bg-color: #f3f4f6;
@@ -20,6 +27,15 @@
         
         body { background-color: var(--bg-color); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
 
+        /* Layar Login Overlay */
+        #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(17, 24, 39, 0.9); z-index: 9999; display: flex; justify-content: center; align-items: center; }
+        .login-box { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 100%; max-width: 350px; text-align: center; }
+        .login-box h2 { border: none; margin-bottom: 5px; color: var(--text-main); justify-content: center; }
+        .login-box p { font-size: 0.85rem; color: #6b7280; margin-bottom: 20px; }
+        .login-box input { margin-bottom: 15px; font-size: 1rem; padding: 10px; }
+        .login-box button { width: 100%; background: var(--primary); padding: 12px; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1rem; margin-top: 5px; }
+        .login-box button:hover { background: var(--primary-hover); }
+
         /* Layout Kiri (Kontrol) dan Kanan (Preview) */
         .controls { width: 45%; padding: 20px; overflow-y: auto; background: var(--panel-bg); border-right: 2px solid var(--border); box-shadow: 2px 0 10px rgba(0,0,0,0.05); z-index: 10; }
         .preview-container { width: 55%; padding: 30px; overflow-y: auto; display: flex; justify-content: center; align-items: flex-start; }
@@ -28,13 +44,13 @@
         
         .form-group { margin-bottom: 12px; }
         label { display: block; font-size: 0.85rem; margin-bottom: 4px; font-weight: 600; color: #4b5563; }
-        input[type="text"], input[type="number"], input[type="date"], select, textarea {
+        input[type="text"], input[type="number"], input[type="date"], input[type="email"], input[type="password"], select, textarea {
             width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.9rem;
         }
         .flex-row { display: flex; gap: 10px; align-items: center; }
         .flex-row > div { flex: 1; }
         
-        /* Item Input Khusus (Mendatar) */
+        /* Item Input Khusus */
         .item-entry-row { display: flex; gap: 8px; align-items: flex-end; background: #f9fafb; padding: 10px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 15px; }
         .item-entry-row > div { display: flex; flex-direction: column; }
         .item-entry-row input { padding: 8px; }
@@ -79,30 +95,25 @@
         .inv-summary .total-row { font-size: 1.2rem; font-weight: bold; border-top: 2px solid var(--text-main); }
 
         .btn-remove { background: #ef4444; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 0.8rem; }
-        
         .hidden-print { display: inline-block; }
 
-        /* Modal Database Styles */
+        /* Modal Database */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
         .modal-content { background: white; padding: 25px; border-radius: 8px; width: 80%; max-width: 600px; max-height: 80vh; overflow-y: auto; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
         .modal-close { position: absolute; top: 15px; right: 20px; font-size: 1.5rem; cursor: pointer; border: none; background: none; color: #6b7280; }
-        .modal-close:hover { color: #111827; }
         .db-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         .db-table th, .db-table td { padding: 10px; border: 1px solid var(--border); text-align: left; font-size: 0.9rem;}
         .db-table th { background: var(--bg-color); }
         .btn-lihat-db { background: #6b7280; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; }
-        .btn-lihat-db:hover { background: #4b5563; }
         .btn-delete-db { background: #ef4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
-        .btn-delete-db:hover { background: #dc2626; }
 
-        /* Profil Toko Section */
         .profile-section { background: #e0f2fe; padding: 15px; border-radius: 8px; border: 1px solid #bae6fd; margin-bottom: 20px; }
         .profile-section label { color: #0369a1; font-size: 0.95rem; }
 
         /* Media Query Print */
         @media print {
             body { background: white; display: block; overflow: auto; height: auto; }
-            .controls { display: none !important; }
+            .controls, #login-overlay { display: none !important; }
             .preview-container { width: 100%; padding: 0; justify-content: flex-start; }
             .invoice-paper { box-shadow: none; padding: 0; max-width: 100%; }
             .hidden-print { display: none !important; }
@@ -111,12 +122,30 @@
 </head>
 <body>
 
+    <!-- Layar Login (Akan hilang jika sudah login) -->
+    <div id="login-overlay">
+        <div class="login-box">
+            <h2>Masuk Database</h2>
+            <p>Silakan login untuk mengakses data nota</p>
+            <input type="email" id="login-email" placeholder="Email Anda">
+            <input type="password" id="login-password" placeholder="Password">
+            <button id="btn-login" onclick="loginApp()">Login</button>
+            <p id="login-error" style="color: #ef4444; margin-top: 15px; display: none;"></p>
+        </div>
+    </div>
+
     <!-- Panel Kontrol Kiri -->
     <div class="controls">
         
+        <!-- Header Kontrol dengan Tombol Logout -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 10px;">
+            <h2 style="margin: 0; border: none; padding: 0;">Panel Kontrol Nota</h2>
+            <button onclick="logoutApp()" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold;">🚪 Logout</button>
+        </div>
+
         <!-- SECTION: MANAJEMEN PROFIL TOKO -->
         <div class="profile-section">
-            <label>🏢 Manajemen Profil Toko</label>
+            <label>🏢 Manajemen Profil Toko (Tersimpan Online)</label>
             <div class="flex-row" style="margin-bottom: 10px;">
                 <div style="flex: 2;">
                     <select id="sel-profile" onchange="loadSelectedProfile()">
@@ -135,7 +164,7 @@
                     <button class="btn-action" style="background: #0284c7; width: 100%;" onclick="saveProfile()">💾 Simpan</button>
                 </div>
             </div>
-            <small style="color: #475569; font-size: 0.75rem; margin-top: 5px; display: block;">*Simpan untuk menyimpan pengaturan Header Nota secara instan.</small>
+            <p id="status-sync" style="color: #059669; font-size: 0.75rem; margin-top: 8px; font-weight: bold; display: none;">✅ Data tersinkronisasi ke Cloud</p>
         </div>
 
         <h2>1. Pengaturan Header Nota</h2>
@@ -255,6 +284,7 @@
             <button class="btn-action btn-print" onclick="window.print()">🖨️ Print Nota</button>
             <button class="btn-action btn-save" onclick="saveAsImage()">🖼️ Save as Image</button>
         </div>
+
     </div>
 
     <!-- Panel Kanan Preview -->
@@ -263,7 +293,6 @@
             
             <div class="inv-header">
                 <div class="inv-logo-toko">
-                    <!-- Logo tersimpan didalam source (src) -->
                     <img id="out-logo" src="" alt="Logo">
                     <div class="inv-toko-details">
                         <h1 class="inv-toko-name" id="out-toko">Toko Serba Ada</h1>
@@ -309,7 +338,6 @@
                     </tr>
                 </thead>
                 <tbody id="out-items-body">
-                    <!-- Items masuk kesini -->
                 </tbody>
             </table>
 
@@ -341,8 +369,8 @@
     <div id="db-modal" class="modal-overlay">
         <div class="modal-content">
             <button class="modal-close" onclick="closeDbModal()">&times;</button>
-            <h2 style="border: none; padding-bottom: 0;">Database Barang Tersimpan</h2>
-            <p style="font-size: 0.85rem; color: #6b7280; margin-bottom: 15px;">Daftar barang ini tersimpan secara lokal di perangkat Anda.</p>
+            <h2 style="border: none; padding-bottom: 0;">Database Barang Cloud</h2>
+            <p style="font-size: 0.85rem; color: #6b7280; margin-bottom: 15px;">Daftar barang ini tersimpan aman di server online Firebase Anda.</p>
             <table class="db-table">
                 <thead>
                     <tr>
@@ -360,17 +388,115 @@
     </div>
 
     <script>
-        document.getElementById('inp-tanggal').valueAsDate = new Date();
-        
-        let invoiceItems = [];
-        let itemDatabase = JSON.parse(localStorage.getItem('myNotaItems')) || {};
-        
-        // --- DATABASE PROFIL TOKO ---
-        let storeProfiles = JSON.parse(localStorage.getItem('myStoreProfiles')) || {};
+        // --- 1. FIREBASE CONFIGURATION ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyAdJHzYtInmOfqCdWYQohC2GWQuYWdnW-M",
+            authDomain: "nota-esbecom.firebaseapp.com",
+            projectId: "nota-esbecom",
+            storageBucket: "nota-esbecom.firebasestorage.app",
+            messagingSenderId: "910454412966",
+            appId: "1:910454412966:web:fd6cf1e5b47fd079bd4667"
+        };
 
+        // Inisialisasi Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Variabel Global
+        let currentUser = null;
+        let invoiceItems = [];
+        let itemDatabase = {};
+        let storeProfiles = {};
+
+        // --- 2. SISTEM LOGIN & LOGOUT ---
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                // Jika berhasil login
+                currentUser = user;
+                document.getElementById('login-overlay').style.display = 'none';
+                loadDataFromFirebase();
+            } else {
+                // Jika belum login / logout
+                currentUser = null;
+                document.getElementById('login-overlay').style.display = 'flex';
+                // Kosongkan data agar tidak nyangkut
+                itemDatabase = {};
+                storeProfiles = {};
+                invoiceItems = [];
+                loadStoreProfilesList();
+                loadItemDatabase();
+            }
+        });
+
+        function loginApp() {
+            const email = document.getElementById('login-email').value;
+            const pass = document.getElementById('login-password').value;
+            const btn = document.getElementById('btn-login');
+            const err = document.getElementById('login-error');
+            
+            btn.innerText = "Loading...";
+            err.style.display = 'none';
+
+            auth.signInWithEmailAndPassword(email, pass).catch((error) => {
+                err.innerText = "Login Gagal: Periksa Email/Password Anda.";
+                err.style.display = 'block';
+                btn.innerText = "Login";
+            });
+        }
+
+        function logoutApp() {
+            auth.signOut();
+        }
+
+        // --- 3. SISTEM SINKRONISASI DATABASE (CLOUD) ---
+        function loadDataFromFirebase() {
+            if (!currentUser) return;
+            
+            // Ambil data user dari Firestore
+            db.collection("users").doc(currentUser.uid).get().then((doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    itemDatabase = data.items || {};
+                    storeProfiles = data.profiles || {};
+                } else {
+                    itemDatabase = {};
+                    storeProfiles = {};
+                }
+                
+                // Refresh tampilan setelah data masuk
+                loadItemDatabase();
+                loadStoreProfilesList();
+                updatePreview();
+            }).catch((error) => {
+                console.error("Error mengambil data:", error);
+            });
+        }
+
+        function syncToFirebase() {
+            if (!currentUser) return;
+            
+            const statusInfo = document.getElementById('status-sync');
+            statusInfo.style.display = 'block';
+            statusInfo.innerText = "⏳ Menyimpan ke Cloud...";
+            statusInfo.style.color = "#d97706"; // Warna oranye
+
+            db.collection("users").doc(currentUser.uid).set({
+                items: itemDatabase,
+                profiles: storeProfiles
+            }, { merge: true }).then(() => {
+                statusInfo.innerText = "✅ Data tersinkronisasi ke Cloud";
+                statusInfo.style.color = "#059669"; // Warna hijau
+                setTimeout(() => { statusInfo.style.display = 'none'; }, 3000);
+            }).catch((error) => {
+                statusInfo.innerText = "❌ Gagal menyimpan data";
+                statusInfo.style.color = "#ef4444"; // Warna merah
+            });
+        }
+
+        // --- 4. DATABASE PROFIL TOKO ---
         function loadStoreProfilesList() {
             const select = document.getElementById('sel-profile');
-            // Bersihkan opsi lama (kecuali opsi pertama)
             while (select.options.length > 1) { select.remove(1); }
             
             for (let profileName in storeProfiles) {
@@ -388,20 +514,20 @@
                 return;
             }
 
-            // Ambil semua data header toko saat ini
             const profileData = {
                 toko: document.getElementById('inp-toko').value,
                 ukuranFont: document.getElementById('inp-toko-size').value,
                 slogan: document.getElementById('inp-slogan').value,
                 alamat: document.getElementById('inp-alamat').value,
                 telp: document.getElementById('inp-telp').value,
-                logoSrc: document.getElementById('out-logo').src // Simpan base64 gambar
+                logoSrc: document.getElementById('out-logo').src 
             };
 
             storeProfiles[profileName] = profileData;
-            localStorage.setItem('myStoreProfiles', JSON.stringify(storeProfiles));
             
-            alert(`Profil "${profileName}" berhasil disimpan!`);
+            // Simpan ke Cloud
+            syncToFirebase();
+            
             document.getElementById('inp-profile-name').value = '';
             loadStoreProfilesList();
             document.getElementById('sel-profile').value = profileName;
@@ -413,16 +539,13 @@
 
             const data = storeProfiles[profileName];
             
-            // Isi kembali ke kolom input
             document.getElementById('inp-toko').value = data.toko || '';
             document.getElementById('inp-toko-size').value = data.ukuranFont || '24';
             document.getElementById('inp-slogan').value = data.slogan || '';
             document.getElementById('inp-alamat').value = data.alamat || '';
             document.getElementById('inp-telp').value = data.telp || '';
             
-            // Render Logo
             const imgEl = document.getElementById('out-logo');
-            // Cek jika valid data URL image bukan URL kosong
             if (data.logoSrc && data.logoSrc.length > 100) {
                 imgEl.src = data.logoSrc;
                 imgEl.style.display = 'block';
@@ -431,59 +554,38 @@
                 imgEl.style.display = 'none';
             }
 
-            // Kosongkan file input karena sudah diload dari memori browser
             document.getElementById('inp-logo').value = '';
-
             updatePreview();
         }
 
         function deleteProfile() {
             const profileName = document.getElementById('sel-profile').value;
-            if (!profileName) {
-                alert("Pilih profil yang ingin dihapus terlebih dahulu dari dropdown.");
-                return;
-            }
-            if (confirm(`Apakah Anda yakin ingin menghapus profil toko "${profileName}"?`)) {
+            if (!profileName) return;
+            
+            if (confirm(`Apakah Anda yakin ingin menghapus profil toko "${profileName}" dari sistem Cloud?`)) {
                 delete storeProfiles[profileName];
-                localStorage.setItem('myStoreProfiles', JSON.stringify(storeProfiles));
+                syncToFirebase(); // Hapus dari Cloud
                 loadStoreProfilesList();
                 document.getElementById('sel-profile').value = '';
-                alert(`Profil "${profileName}" berhasil dihapus.`);
             }
         }
-        // --- END DATABASE PROFIL TOKO ---
 
+        // --- 5. LOGIKA UI & ITEM (SAMA SEPERTI SEBELUMNYA) ---
+        document.getElementById('inp-tanggal').valueAsDate = new Date();
 
-        // Fungsi Format Uang
         function formatUang(angka, mataUang) {
             let options = { style: 'currency', currency: mataUang, minimumFractionDigits: 0, maximumFractionDigits: 0 };
             if (mataUang === 'USD') options.maximumFractionDigits = 2; 
             return new Intl.NumberFormat(mataUang === 'IDR' ? 'id-ID' : 'en-US', options).format(angka);
         }
 
-        const inputs = [
-            'inp-toko', 'inp-toko-size', 'inp-slogan', 'inp-alamat', 'inp-telp', 
-            'inp-judul', 'inp-no', 'inp-tanggal', 'inp-duedate', 'inp-tujuan', 
-            'inp-currency', 'inp-tax', 'inp-discount'
-        ];
+        const inputs = ['inp-toko', 'inp-toko-size', 'inp-slogan', 'inp-alamat', 'inp-telp', 'inp-judul', 'inp-no', 'inp-tanggal', 'inp-duedate', 'inp-tujuan', 'inp-currency', 'inp-tax', 'inp-discount'];
         inputs.forEach(id => { document.getElementById(id).addEventListener('input', updatePreview); });
 
-        document.getElementById('chk-duedate').addEventListener('change', function() {
-            document.getElementById('wrap-duedate').style.display = this.checked ? 'block' : 'none';
-            document.getElementById('out-row-duedate').style.display = this.checked ? 'table-row' : 'none';
-        });
-        document.getElementById('chk-tax').addEventListener('change', function() {
-            document.getElementById('wrap-tax').style.display = this.checked ? 'block' : 'none';
-            document.getElementById('out-row-tax').style.display = this.checked ? 'table-row' : 'none';
-            updatePreview();
-        });
-        document.getElementById('chk-discount').addEventListener('change', function() {
-            document.getElementById('wrap-discount').style.display = this.checked ? 'block' : 'none';
-            document.getElementById('out-row-discount').style.display = this.checked ? 'table-row' : 'none';
-            updatePreview();
-        });
+        document.getElementById('chk-duedate').addEventListener('change', function() { document.getElementById('wrap-duedate').style.display = this.checked ? 'block' : 'none'; document.getElementById('out-row-duedate').style.display = this.checked ? 'table-row' : 'none'; });
+        document.getElementById('chk-tax').addEventListener('change', function() { document.getElementById('wrap-tax').style.display = this.checked ? 'block' : 'none'; document.getElementById('out-row-tax').style.display = this.checked ? 'table-row' : 'none'; updatePreview(); });
+        document.getElementById('chk-discount').addEventListener('change', function() { document.getElementById('wrap-discount').style.display = this.checked ? 'block' : 'none'; document.getElementById('out-row-discount').style.display = this.checked ? 'table-row' : 'none'; updatePreview(); });
 
-        // Logo Upload Event
         document.getElementById('inp-logo').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
@@ -535,8 +637,9 @@
 
             invoiceItems.push({ name, qty, unit, price });
             
+            // Simpan ke Variabel dan Sinkron ke Cloud
             itemDatabase[name] = { price: price, unit: unit };
-            localStorage.setItem('myNotaItems', JSON.stringify(itemDatabase));
+            syncToFirebase();
             loadItemDatabase();
 
             document.getElementById('entry-name').value = '';
@@ -625,7 +728,6 @@
             renderItems();
         }
 
-        // Database Barang Modal
         function openDbModal() { document.getElementById('db-modal').style.display = 'flex'; renderDbTable(); }
         function closeDbModal() { document.getElementById('db-modal').style.display = 'none'; }
         
@@ -652,9 +754,9 @@
         }
 
         function deleteDbItem(name) {
-            if(confirm(`Apakah Anda yakin ingin menghapus "${name}"?`)) {
+            if(confirm(`Apakah Anda yakin ingin menghapus "${name}" dari sistem Cloud?`)) {
                 delete itemDatabase[name];
-                localStorage.setItem('myNotaItems', JSON.stringify(itemDatabase));
+                syncToFirebase(); // Hapus dari Cloud
                 renderDbTable(); 
                 loadItemDatabase(); 
             }
@@ -676,9 +778,7 @@
             });
         }
 
-        // Inisialisasi awal
-        loadStoreProfilesList();
-        loadItemDatabase();
+        // Inisialisasi Preview Awal
         updatePreview();
 
     </script>
