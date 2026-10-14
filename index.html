@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplikasi Nota & Invoice Custom</title>
+    <title>Aplikasi Nota & Invoice Custom (A5)</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -41,7 +41,7 @@
         
         .form-group { margin-bottom: 12px; }
         label { display: block; font-size: 0.85rem; margin-bottom: 4px; font-weight: 600; color: #4b5563; }
-        input[type="text"], input[type="number"], input[type="date"], input[type="email"], input[type="password"], select, textarea {
+        input[type="text"], input[type="number"], input[type="date"], input[type="email"], input[type="password"], select, textarea, input[type="range"] {
             width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.9rem;
         }
         .flex-row { display: flex; gap: 10px; align-items: center; }
@@ -63,42 +63,67 @@
         .btn-save { background: #f59e0b; }
         .btn-save:hover { background: #d97706; }
 
-        /* Desain Preview Nota */
-        .invoice-paper { width: 100%; max-width: 800px; background: white; padding: 40px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border-radius: 4px; position: relative; }
-        .inv-header { display: flex; justify-content: space-between; margin-bottom: 30px; border-bottom: 2px solid var(--border); padding-bottom: 20px; }
-        .inv-logo-toko { display: flex; gap: 15px; max-width: 60%; align-items: flex-start; }
-        .inv-logo-toko img { max-width: 100px; max-height: 80px; object-fit: contain; display: none; }
+        /* Desain Preview Nota KERTAS A5 */
+        .invoice-paper { 
+            width: 148mm; /* Lebar A5 */
+            min-height: 210mm; /* Tinggi A5 */
+            background: white; 
+            padding: 25px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+            border-radius: 4px; 
+            position: relative; 
+            overflow: hidden; 
+            margin: 0 auto;
+        }
+        
+        /* Layer untuk isi nota agar selalu di atas watermark */
+        .inv-content-layer { position: relative; z-index: 2; }
+
+        /* Style Watermark */
+        .inv-watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1; /* Di bawah teks */
+            pointer-events: none; /* Agar tidak bisa diklik */
+            display: none;
+        }
+
+        .inv-header { display: flex; justify-content: space-between; margin-bottom: 25px; border-bottom: 2px solid var(--border); padding-bottom: 15px; }
+        .inv-logo-toko { display: flex; gap: 10px; max-width: 60%; align-items: flex-start; }
+        .inv-logo-toko img { max-width: 80px; max-height: 60px; object-fit: contain; display: none; }
         .inv-toko-details { display: flex; flex-direction: column; }
         .inv-toko-name { font-weight: bold; margin: 0; word-break: break-word; }
         
         .inv-title-section { text-align: right; }
-        .inv-title { font-size: 2rem; font-weight: bold; color: var(--text-main); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px; }
+        .inv-title { font-size: 1.6rem; font-weight: bold; color: var(--text-main); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
         
-        .inv-meta { display: flex; justify-content: space-between; margin-bottom: 30px; }
-        .inv-tujuan, .inv-details { width: 45%; }
+        .inv-meta { display: flex; justify-content: space-between; margin-bottom: 25px; font-size: 0.85rem; }
+        .inv-tujuan, .inv-details { width: 48%; }
         .inv-details table { width: 100%; text-align: right; }
         .inv-details th { color: #6b7280; font-weight: normal; padding-right: 10px; }
 
-        .inv-items { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        .inv-items th { background: var(--bg-color); padding: 10px; text-align: left; border-bottom: 2px solid var(--border); font-size: 0.9rem; }
-        .inv-items td { padding: 10px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        .inv-items { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+        .inv-items th { background: var(--bg-color); padding: 8px; text-align: left; border-bottom: 2px solid var(--border); font-size: 0.8rem; }
+        .inv-items td { padding: 8px; border-bottom: 1px solid var(--border); font-size: 0.8rem; }
         .inv-items th.right, .inv-items td.right { text-align: right; }
         .inv-items th.center, .inv-items td.center { text-align: center; }
 
-        .inv-summary { width: 50%; margin-left: auto; }
+        .inv-summary { width: 55%; margin-left: auto; }
         .inv-summary table { width: 100%; }
-        .inv-summary th, .inv-summary td { padding: 8px; text-align: right; font-size: 0.95rem; }
-        .inv-summary .total-row { font-size: 1.2rem; font-weight: bold; border-top: 2px solid var(--text-main); }
+        .inv-summary th, .inv-summary td { padding: 6px; text-align: right; font-size: 0.85rem; }
+        .inv-summary .total-row { font-size: 1.1rem; font-weight: bold; border-top: 2px solid var(--text-main); }
 
-        .btn-remove { background: #ef4444; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 0.8rem; }
+        .btn-remove { background: #ef4444; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 0.75rem; }
         .hidden-print { display: inline-block; }
 
         /* Footer Tanda Tangan & Disclaimer */
-        .inv-footer-section { display: flex; justify-content: space-between; margin-top: 50px; align-items: flex-end; }
-        .inv-disclaimer { font-size: 0.8rem; color: #6b7280; width: 60%; font-style: italic; }
+        .inv-footer-section { display: flex; justify-content: space-between; margin-top: 40px; align-items: flex-end; }
+        .inv-disclaimer { font-size: 0.75rem; color: #6b7280; width: 60%; font-style: italic; }
         .inv-signature { width: 35%; text-align: center; }
-        .inv-signature img { max-height: 80px; max-width: 150px; display: none; margin: 5px auto; object-fit: contain; }
-        .inv-signature-name { font-weight: bold; text-decoration: underline; margin-top: 10px; }
+        .inv-signature img { max-height: 70px; max-width: 140px; display: none; margin: 5px auto; object-fit: contain; }
+        .inv-signature-name { font-weight: bold; text-decoration: underline; margin-top: 10px; font-size: 0.85rem; }
 
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
         .modal-content { background: white; padding: 25px; border-radius: 8px; width: 80%; max-width: 600px; max-height: 80vh; overflow-y: auto; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
@@ -113,10 +138,12 @@
         .profile-section label { color: #0369a1; font-size: 0.95rem; }
 
         @media print {
-            body { background: white; display: block; overflow: auto; height: auto; }
+            /* Memaksa browser mengeprint dengan ukuran A5 */
+            @page { size: A5 portrait; margin: 10mm; }
+            body { background: white; display: block; overflow: visible; height: auto; }
             .controls, #login-overlay { display: none !important; }
-            .preview-container { width: 100%; padding: 0; justify-content: flex-start; }
-            .invoice-paper { box-shadow: none; padding: 0; max-width: 100%; }
+            .preview-container { width: 100%; padding: 0; justify-content: flex-start; display: block; overflow: visible; }
+            .invoice-paper { box-shadow: none; padding: 0; max-width: 100%; width: 100%; min-height: auto; margin: 0; border: none; }
             .hidden-print { display: none !important; }
         }
     </style>
@@ -138,13 +165,11 @@
     <!-- Panel Kontrol Kiri -->
     <div class="controls">
         
-        <!-- Header Kontrol -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 10px;">
             <h2 style="margin: 0; border: none; padding: 0;">Panel Kontrol Nota</h2>
             <button onclick="logoutApp()" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold;">🚪 Logout</button>
         </div>
 
-        <!-- SECTION: MANAJEMEN PROFIL TOKO -->
         <div class="profile-section">
             <label>🏢 Manajemen Profil Toko</label>
             <div class="flex-row" style="margin-bottom: 10px;">
@@ -180,10 +205,9 @@
             </div>
             <div class="form-group" style="flex: 1;">
                 <label>Ukuran Font Toko</label>
-                <input type="number" id="inp-toko-size" value="24" min="12" max="48">
+                <input type="number" id="inp-toko-size" value="20" min="12" max="48">
             </div>
         </div>
-        
         <div class="form-group">
             <label>Slogan Toko (Opsional)</label>
             <input type="text" id="inp-slogan" placeholder="Cth: Belanja Murah & Lengkap">
@@ -251,14 +275,14 @@
             </div>
             <div style="flex: 1.5;">
                 <label>Satuan</label>
-                <input type="text" id="entry-unit" placeholder="Pcs, Kg..." value="Pcs">
+                <input type="text" id="entry-unit" placeholder="Pcs..." value="Pcs">
             </div>
             <div style="flex: 2;">
                 <label>Harga Satuan</label>
                 <input type="number" id="entry-price" placeholder="0">
             </div>
             <div>
-                <button class="btn-add" onclick="addItem()">+ ADD ITEM</button>
+                <button class="btn-add" onclick="addItem()">+ ADD</button>
             </div>
         </div>
 
@@ -278,8 +302,25 @@
             </div>
         </div>
 
-        <!-- SECTION BARU: TANDA TANGAN & VALIDASI -->
-        <h2>5. Tanda Tangan & Validasi</h2>
+        <!-- SECTION TANDA TANGAN & WATERMARK -->
+        <h2>5. Tanda Tangan & Watermark</h2>
+        
+        <!-- Pengaturan Watermark -->
+        <div class="checkbox-group">
+            <label><input type="checkbox" id="chk-watermark"> Jadikan Logo Toko sebagai Watermark Tengah</label>
+        </div>
+        <div class="flex-row" id="wrap-wm-controls" style="display: none; background: #f9fafb; padding: 15px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 15px;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label>Ukuran Watermark: <span id="val-wm-size">60</span>%</label>
+                <input type="range" id="inp-wm-size" min="10" max="150" value="60">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label>Ketebalan (Opacity): <span id="val-wm-opacity">10</span>%</label>
+                <input type="range" id="inp-wm-opacity" min="2" max="50" value="10">
+            </div>
+        </div>
+
+        <!-- Pengaturan Tanda Tangan -->
         <div class="form-group">
             <label>Teks Validasi / Disclaimer Resmi</label>
             <textarea id="inp-disclaimer" rows="2">Nota ini dicetak secara digital dan dinyatakan sah meskipun tanpa stempel basah.</textarea>
@@ -289,12 +330,12 @@
             <input type="text" id="inp-sign-name" value="Sakti Haryo Prakoso">
         </div>
         <div class="form-group">
-            <label>Upload Tanda Tangan / Paraf (Opsional, gunakan PNG transparan)</label>
+            <label>Upload Tanda Tangan / Paraf (Gunakan PNG transparan)</label>
             <input type="file" id="inp-sign-img" accept="image/*">
         </div>
 
         <div class="actions">
-            <button class="btn-action btn-print" onclick="window.print()">🖨️ Print Nota</button>
+            <button class="btn-action btn-print" onclick="window.print()">🖨️ Print Nota A5</button>
             <button class="btn-action btn-save" onclick="saveAsImage()">🖼️ Save as Image</button>
         </div>
 
@@ -304,88 +345,93 @@
     <div class="preview-container">
         <div class="invoice-paper" id="invoice-paper">
             
-            <div class="inv-header">
-                <div class="inv-logo-toko">
-                    <img id="out-logo" src="" alt="Logo">
-                    <div class="inv-toko-details">
-                        <h1 class="inv-toko-name" id="out-toko">Toko Serba Ada</h1>
-                        <div id="out-slogan" style="font-size: 0.9rem; font-style: italic; color: #4b5563; margin-top: 3px; display: none;"></div>
-                        <div id="out-alamat" style="font-size: 0.85rem; margin-top: 6px; white-space: pre-wrap; display: none;"></div>
-                        <div id="out-telp" style="font-size: 0.85rem; font-weight: bold; margin-top: 3px; display: none;"></div>
+            <!-- WATERMARK LAYER -->
+            <img class="inv-watermark" id="out-watermark" src="" alt="Watermark">
+            
+            <!-- CONTENT LAYER (Z-index lebih tinggi agar tidak tertutup watermark) -->
+            <div class="inv-content-layer">
+                <div class="inv-header">
+                    <div class="inv-logo-toko">
+                        <img id="out-logo" src="" alt="Logo">
+                        <div class="inv-toko-details">
+                            <h1 class="inv-toko-name" id="out-toko">Toko Serba Ada</h1>
+                            <div id="out-slogan" style="font-size: 0.8rem; font-style: italic; color: #4b5563; margin-top: 3px; display: none;"></div>
+                            <div id="out-alamat" style="font-size: 0.75rem; margin-top: 6px; white-space: pre-wrap; display: none;"></div>
+                            <div id="out-telp" style="font-size: 0.75rem; font-weight: bold; margin-top: 3px; display: none;"></div>
+                        </div>
+                    </div>
+                    <div class="inv-title-section">
+                        <div class="inv-title" id="out-judul">INVOICE</div>
+                        <div id="out-no" style="color: #6b7280; font-weight: bold;">#INV-001</div>
                     </div>
                 </div>
-                <div class="inv-title-section">
-                    <div class="inv-title" id="out-judul">INVOICE</div>
-                    <div id="out-no" style="color: #6b7280; font-weight: bold;">#INV-001</div>
-                </div>
-            </div>
 
-            <div class="inv-meta">
-                <div class="inv-tujuan">
-                    <div style="color: #6b7280; margin-bottom: 5px;">Kepada Yth:</div>
-                    <div id="out-tujuan" style="white-space: pre-wrap; font-weight: 500;">-</div>
+                <div class="inv-meta">
+                    <div class="inv-tujuan">
+                        <div style="color: #6b7280; margin-bottom: 5px;">Kepada Yth:</div>
+                        <div id="out-tujuan" style="white-space: pre-wrap; font-weight: 500;">-</div>
+                    </div>
+                    <div class="inv-details">
+                        <table>
+                            <tr>
+                                <th>Tanggal:</th>
+                                <td id="out-tanggal">-</td>
+                            </tr>
+                            <tr id="out-row-duedate">
+                                <th>Due Date:</th>
+                                <td id="out-duedate">-</td>
+                            </tr>
+                        </table>
+                    </div>
                 </div>
-                <div class="inv-details">
+
+                <table class="inv-items">
+                    <thead>
+                        <tr>
+                            <th style="width: 5%">No</th>
+                            <th style="width: 35%">Deskripsi Barang</th>
+                            <th class="center" style="width: 15%">Qty</th>
+                            <th class="right" style="width: 22%">Harga Satuan</th>
+                            <th class="right" style="width: 23%">Jumlah</th>
+                            <th class="hidden-print"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="out-items-body">
+                    </tbody>
+                </table>
+
+                <div class="inv-summary">
                     <table>
                         <tr>
-                            <th>Tanggal:</th>
-                            <td id="out-tanggal">-</td>
+                            <th>Subtotal:</th>
+                            <td id="out-subtotal">Rp 0</td>
                         </tr>
-                        <tr id="out-row-duedate">
-                            <th>Due Date:</th>
-                            <td id="out-duedate">-</td>
+                        <tr id="out-row-tax" style="display: none;">
+                            <th>Pajak (<span id="out-tax-label">0</span>%):</th>
+                            <td id="out-tax-amount">Rp 0</td>
+                        </tr>
+                        <tr id="out-row-discount" style="display: none;">
+                            <th>Diskon:</th>
+                            <td id="out-discount-amount">Rp 0</td>
+                        </tr>
+                        <tr class="total-row">
+                            <th>TOTAL:</th>
+                            <td id="out-total">Rp 0</td>
                         </tr>
                     </table>
                 </div>
-            </div>
 
-            <table class="inv-items">
-                <thead>
-                    <tr>
-                        <th style="width: 5%">No</th>
-                        <th style="width: 40%">Deskripsi Barang</th>
-                        <th class="center" style="width: 15%">Qty</th>
-                        <th class="right" style="width: 20%">Harga Satuan</th>
-                        <th class="right" style="width: 20%">Jumlah</th>
-                        <th class="hidden-print"></th>
-                    </tr>
-                </thead>
-                <tbody id="out-items-body">
-                </tbody>
-            </table>
-
-            <div class="inv-summary">
-                <table>
-                    <tr>
-                        <th>Subtotal:</th>
-                        <td id="out-subtotal">Rp 0</td>
-                    </tr>
-                    <tr id="out-row-tax" style="display: none;">
-                        <th>Pajak (<span id="out-tax-label">0</span>%):</th>
-                        <td id="out-tax-amount">Rp 0</td>
-                    </tr>
-                    <tr id="out-row-discount" style="display: none;">
-                        <th>Diskon:</th>
-                        <td id="out-discount-amount">Rp 0</td>
-                    </tr>
-                    <tr class="total-row">
-                        <th>TOTAL:</th>
-                        <td id="out-total">Rp 0</td>
-                    </tr>
-                </table>
-            </div>
-
-            <!-- Bagian Footer Tanda Tangan & Disclaimer -->
-            <div class="inv-footer-section">
-                <div class="inv-disclaimer" id="out-disclaimer">
-                    Nota ini dicetak secara digital dan dinyatakan sah meskipun tanpa stempel basah.
+                <div class="inv-footer-section">
+                    <div class="inv-disclaimer" id="out-disclaimer">
+                        Nota ini dicetak secara digital dan dinyatakan sah meskipun tanpa stempel basah.
+                    </div>
+                    <div class="inv-signature">
+                        <div style="color: #4b5563; font-size: 0.8rem;">Hormat Kami,</div>
+                        <img id="out-sign-img" src="" alt="Tanda Tangan">
+                        <div class="inv-signature-name" id="out-sign-name">Sakti Haryo Prakoso</div>
+                    </div>
                 </div>
-                <div class="inv-signature">
-                    <div style="color: #4b5563; font-size: 0.9rem;">Hormat Kami,</div>
-                    <img id="out-sign-img" src="" alt="Tanda Tangan">
-                    <div class="inv-signature-name" id="out-sign-name">Sakti Haryo Prakoso</div>
-                </div>
-            </div>
+            </div> <!-- End Content Layer -->
 
         </div>
     </div>
@@ -505,9 +551,13 @@
                 alamat: document.getElementById('inp-alamat').value,
                 telp: document.getElementById('inp-telp').value,
                 logoSrc: document.getElementById('out-logo').src,
-                signName: document.getElementById('inp-sign-name').value, // Simpan nama ttd
-                signImgSrc: document.getElementById('out-sign-img').src, // Simpan foto ttd
-                disclaimer: document.getElementById('inp-disclaimer').value
+                signName: document.getElementById('inp-sign-name').value, 
+                signImgSrc: document.getElementById('out-sign-img').src, 
+                disclaimer: document.getElementById('inp-disclaimer').value,
+                // Watermark Data
+                useWatermark: document.getElementById('chk-watermark').checked,
+                wmSize: document.getElementById('inp-wm-size').value,
+                wmOpacity: document.getElementById('inp-wm-opacity').value
             };
             syncToFirebase();
             document.getElementById('inp-profile-name').value = '';
@@ -520,13 +570,21 @@
 
             const data = storeProfiles[profileName];
             document.getElementById('inp-toko').value = data.toko || '';
-            document.getElementById('inp-toko-size').value = data.ukuranFont || '24';
+            document.getElementById('inp-toko-size').value = data.ukuranFont || '20';
             document.getElementById('inp-slogan').value = data.slogan || '';
             document.getElementById('inp-alamat').value = data.alamat || '';
             document.getElementById('inp-telp').value = data.telp || '';
             
             document.getElementById('inp-sign-name').value = data.signName || 'Sakti Haryo Prakoso';
             document.getElementById('inp-disclaimer').value = data.disclaimer || 'Nota ini dicetak secara digital dan dinyatakan sah meskipun tanpa stempel basah.';
+
+            // Load Watermark settings
+            document.getElementById('chk-watermark').checked = data.useWatermark || false;
+            document.getElementById('inp-wm-size').value = data.wmSize || '60';
+            document.getElementById('inp-wm-opacity').value = data.wmOpacity || '10';
+            document.getElementById('val-wm-size').innerText = data.wmSize || '60';
+            document.getElementById('val-wm-opacity').innerText = data.wmOpacity || '10';
+            document.getElementById('wrap-wm-controls').style.display = data.useWatermark ? 'flex' : 'none';
 
             const imgLogo = document.getElementById('out-logo');
             if (data.logoSrc && data.logoSrc.length > 100) { imgLogo.src = data.logoSrc; imgLogo.style.display = 'block'; } 
@@ -562,6 +620,18 @@
         const inputs = ['inp-toko', 'inp-toko-size', 'inp-slogan', 'inp-alamat', 'inp-telp', 'inp-judul', 'inp-no', 'inp-tanggal', 'inp-duedate', 'inp-tujuan', 'inp-currency', 'inp-tax', 'inp-discount', 'inp-sign-name', 'inp-disclaimer'];
         inputs.forEach(id => { document.getElementById(id).addEventListener('input', updatePreview); });
 
+        // Watermark Listeners
+        document.getElementById('chk-watermark').addEventListener('change', function() { 
+            document.getElementById('wrap-wm-controls').style.display = this.checked ? 'flex' : 'none'; 
+            updatePreview(); 
+        });
+        document.getElementById('inp-wm-size').addEventListener('input', function() {
+            document.getElementById('val-wm-size').innerText = this.value; updatePreview();
+        });
+        document.getElementById('inp-wm-opacity').addEventListener('input', function() {
+            document.getElementById('val-wm-opacity').innerText = this.value; updatePreview();
+        });
+
         document.getElementById('chk-duedate').addEventListener('change', function() { document.getElementById('wrap-duedate').style.display = this.checked ? 'block' : 'none'; document.getElementById('out-row-duedate').style.display = this.checked ? 'table-row' : 'none'; });
         document.getElementById('chk-tax').addEventListener('change', function() { document.getElementById('wrap-tax').style.display = this.checked ? 'block' : 'none'; document.getElementById('out-row-tax').style.display = this.checked ? 'table-row' : 'none'; updatePreview(); });
         document.getElementById('chk-discount').addEventListener('change', function() { document.getElementById('wrap-discount').style.display = this.checked ? 'block' : 'none'; document.getElementById('out-row-discount').style.display = this.checked ? 'table-row' : 'none'; updatePreview(); });
@@ -569,12 +639,15 @@
         document.getElementById('inp-logo').addEventListener('change', function(e) {
             if (e.target.files[0]) {
                 const reader = new FileReader();
-                reader.onload = function(event) { document.getElementById('out-logo').src = event.target.result; document.getElementById('out-logo').style.display = 'block'; }
+                reader.onload = function(event) { 
+                    document.getElementById('out-logo').src = event.target.result; 
+                    document.getElementById('out-logo').style.display = 'block'; 
+                    updatePreview(); // agar watermark juga ikut ke-update
+                }
                 reader.readAsDataURL(e.target.files[0]);
             }
         });
 
-        // Event listener untuk upload gambar tanda tangan
         document.getElementById('inp-sign-img').addEventListener('change', function(e) {
             if (e.target.files[0]) {
                 const reader = new FileReader();
@@ -643,6 +716,20 @@
             // Update Sign & Disclaimer
             document.getElementById('out-sign-name').innerText = document.getElementById('inp-sign-name').value;
             document.getElementById('out-disclaimer').innerText = document.getElementById('inp-disclaimer').value;
+
+            // Render Watermark
+            const wmImg = document.getElementById('out-watermark');
+            const chkWm = document.getElementById('chk-watermark').checked;
+            const logoSrc = document.getElementById('out-logo').src;
+            
+            if (chkWm && logoSrc && logoSrc.length > 100) {
+                wmImg.src = logoSrc;
+                wmImg.style.display = 'block';
+                wmImg.style.width = document.getElementById('inp-wm-size').value + '%';
+                wmImg.style.opacity = document.getElementById('inp-wm-opacity').value / 100;
+            } else {
+                wmImg.style.display = 'none';
+            }
 
             let subtotal = invoiceItems.reduce((sum, item) => sum + (item.qty * item.price), 0);
             let taxAmount = 0; let discountAmount = 0;
